@@ -1,0 +1,222 @@
+"""AS-REP Roastable account enumeration.
+
+This module identifies accounts vulnerable to AS-REP roasting by querying
+for accounts with the DONT_REQUIRE_PREAUTH flag set (UAC bit 0x400000).
+
+This is pure enumeration - it does NOT request AS-REP tickets or obtain hashes.
+To actually perform AS-REP roasting, use the command shown in Next Steps.
+"""
+
+import re
+
+from ..core.colors import Colors, c
+from ..core.constants import RE_LDAP_CN
+from ..core.output import JSON_DATA, debug_nxc, output, print_section, status
+from ..core.runner import run_nxc
+from ..parsing.nxc_output import is_nxc_noise_line
+from ..reporting.next_steps import get_external_tool_auth
+
+# UAC flag for DONT_REQUIRE_PREAUTH = 0x400000 = 4194304
+# LDAP filter uses bitwise AND to check if this flag is set
+DONT_REQUIRE_PREAUTH_FILTER = "(userAccountControl:1.2.840.113556.1.4.803:=4194304)"
+
+# Regex to match "No entries found" or similar
+RE_NO_ENTRIES = re.compile(r"No entries found|0 entries", re.IGNORECASE)
+
+
+def enum_asreproast(args, cache):
+    """Identify accounts vulnerable to AS-REP roasting.
+
+    Queries LDAP for accounts with DONT_REQUIRE_PREAUTH flag set.
+    This is enumeration only - does not request tickets or obtain hashes.
+    """
+    target = cache.target if cache else args.target
+    print_section("AS-REP Roastable Accounts", target, cache=cache)
+
+    # Skip if LDAP is unavailable (determined during cache priming)
+    if not cache.ldap_available:
+        status("LDAP unavailable - skipping AS-REP Roastable enumeration", "error")
+        return
+
+    auth = cache.auth_args
+    status("Querying accounts without Kerberos pre-authentication...")
+
+    # Try to use batch data first (populated during cache priming)
+    batch_data = cache.get_asreproastable_from_batch()
+    if batch_data is not None:
+        # Use pre-fetched batch data - much faster
+        asreproastable = batch_data
+        rc, stdout, stderr = 0, "", ""  # No individual query needed
+    else:
+        # Fall back to individual query
+        # Use LDAP query to find accounts with DONT_REQUIRE_PREAUTH flag
+        # This is pure enumeration - no AS-REP tickets are requested
+        query_args = (
+            ["ldap", target] + auth + ["--query", DONT_REQUIRE_PREAUTH_FILTER, "sAMAccountName"]
+        )
+        rc, stdout, stderr = run_nxc(query_args, args.timeout)
+        debug_nxc(query_args, stdout, stderr, "AS-REP Roastable Query")
+
+        asreproastable = []
+
+        # Parse output for vulnerable accounts
+        # nxc --query output format: "Response for object: CN=username,..."
+        # followed by "sAMAccountName    username"
+        current_user = None
+
+        for line in stdout.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+
+            # Skip noise lines
+            if is_nxc_noise_line(line):
+                continue
+
+            # Look for "Response for object: CN=username,..." lines
+            if "Response for object:" in line and "CN=" in line:
+                cn_match = RE_LDAP_CN.search(line)
+                if cn_match:
+                    username = cn_match.group(1)
+                    # Skip computer accounts
+                    if not username.endswith("$"):
+                        current_user = username
+                    else:
+                        current_user = None
+                continue
+
+            # Look for sAMAccountName attribute line
+            if current_user and "sAMAccountName" in line:
+                # Format: "sAMAccountName    username" or "sAMAccountName: username"
+                parts = re.split(r"[:\s]+", line, maxsplit=1)
+                if len(parts) >= 2:
+                    sam_name = parts[1].strip()
+                    if sam_name and sam_name not in [a["username"] for a in asreproastable]:
+                        asreproastable.append(
+                            {
+                                "username": sam_name,
+                                "domain": (
+                                    args.domain if hasattr(args, "domain") and args.domain else None
+                                ),
+                            }
+                        )
+                current_user = None
+                continue
+
+            # Alternative: direct username in LDAP response line (older nxc versions)
+            # Format: "LDAP  IP  PORT  HOST  username"
+            if line.startswith("LDAP") and "sAMAccountName" not in line:
+                parts = line.split()
+                if len(parts) >= 5:
+                    try:
+                        port_idx = -1
+                        for i, p in enumerate(parts):
+                            if p in ("389", "636"):
+                                port_idx = i
+                                break
+                        if port_idx >= 0 and port_idx + 2 < len(parts):
+                            username = parts[port_idx + 2]
+                            # Skip if it looks like a status indicator
+                            if username not in ("[*]", "[+]", "[-]", "[!]"):
+                                if not username.endswith("$"):
+                                    if username not in [a["username"] for a in asreproastable]:
+                                        asreproastable.append(
+                                            {
+                                                "username": username,
+                                                "domain": (
+                                                    args.domain
+                                                    if hasattr(args, "domain") and args.domain
+                                                    else None
+                                                ),
+                                            }
+                                        )
+                    except (ValueError, IndexError):
+                        pass
+
+    # Store results in cache
+    cache.asreproastable = asreproastable
+
+    if asreproastable:
+        status(f"Found {len(asreproastable)} account(s) vulnerable to AS-REP roasting:", "warning")
+        status(
+            "DONT_REQUIRE_PREAUTH bypasses Kerberos pre-authentication. "
+            "Attackers can request AS-REP tickets WITHOUT credentials and crack them offline.",
+            "info",
+        )
+        output("")
+
+        # Display accounts with prominent visual emphasis
+        output(c("=" * 60, Colors.RED + Colors.BOLD))
+        output(c("  VULNERABLE ACCOUNTS (DONT_REQUIRE_PREAUTH)", Colors.RED + Colors.BOLD))
+        output(
+            c(
+                "  These accounts return crackable hashes WITHOUT a password!",
+                Colors.RED + Colors.BOLD,
+            )
+        )
+        output(c("=" * 60, Colors.RED + Colors.BOLD))
+        output("")
+
+        for account in asreproastable:
+            username = account["username"]
+            output(c(f"  >>> {username} <<<", Colors.RED + Colors.BOLD))
+
+        output("")
+        output(c("=" * 60, Colors.RED + Colors.BOLD))
+
+        # Build auth hint for command using auth helper
+        auth_info = get_external_tool_auth(args, cache, tool="nxc")
+        auth_hint = auth_info["auth_string"]
+
+        # Show the command to get hashes RIGHT HERE (not just in Next Steps)
+        output("")
+        output(c("GET THE HASHES:", Colors.YELLOW + Colors.BOLD))
+        output(c(f"  nxc ldap {target} {auth_hint} --asreproast hashes.txt", Colors.CYAN))
+        output("")
+        output(c("CRACK WITH:", Colors.YELLOW + Colors.BOLD))
+        output("  hashcat -m 18200 hashes.txt wordlist.txt -r /usr/share/hashcat/rules/best64.rule")
+        output("  john --format=krb5asrep hashes.txt --wordlist=wordlist.txt")
+        output("")
+
+        # Add next step recommendation - this is the actual attack command
+        usernames = [a["username"] for a in asreproastable]
+        users_list = ", ".join(usernames[:3])
+        if len(asreproastable) > 3:
+            users_list += f" (+{len(asreproastable) - 3} more)"
+
+        cache.add_next_step(
+            finding=f"AS-REP roastable accounts: {users_list}",
+            command=f"nxc ldap {target} {auth_hint} --asreproast hashes.txt",
+            description="Request AS-REP tickets and export hashes (hashcat -m 18200)",
+            priority="high",
+        )
+
+        # Store for aggregated copy-paste section
+        cache.copy_paste_data["asreproastable_users"].update(
+            account["username"] for account in asreproastable
+        )
+    else:
+        # Check for explicit "no entries" message, access denied, or LDAP failure
+        combined = stdout + stderr
+        combined_lower = combined.lower()
+        ldap_failure_indicators = [
+            "failed to connect",
+            "connection refused",
+            "timed out",
+            "ldap ping failed",
+            "failed to create connection",
+            "kerberos sessionerror",
+        ]
+        if RE_NO_ENTRIES.search(combined):
+            status("No AS-REP roastable accounts found", "success")
+        elif "STATUS_ACCESS_DENIED" in combined.upper():
+            status("Access denied - cannot query AS-REP roastable accounts", "error")
+        elif "STATUS_LOGON_FAILURE" in combined.upper():
+            status("Authentication failed - cannot query AS-REP roastable accounts", "error")
+        elif any(ind in combined_lower for ind in ldap_failure_indicators) or rc != 0:
+            status("LDAP unavailable - cannot enumerate AS-REP roastable accounts", "error")
+        else:
+            status("No AS-REP roastable accounts found", "success")
+
+    if args.json_output:
+        JSON_DATA["asreproastable"] = asreproastable

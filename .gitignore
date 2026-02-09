@@ -1,0 +1,145 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ruff
+.ruff_cache/
+
+# Pyre / pytype
+.pyre/
+.pytype/
+
+# IDE settings
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# oh-my-claudecode
+.omc/
+
+# Claude Code project files
+CLAUDE.md
+
+# ============================================
+# Security Tool Specific - NEVER COMMIT THESE
+# ============================================
+
+# Credential files
+creds.txt
+*.creds
+passwords.txt
+users.txt
+hashes.txt
+userpass.txt
+credentials.txt
+secrets.txt
+*.secret
+
+# Enumeration output files
+results.txt
+results.json
+*.enum
+*.enum.txt
+*.enum.json
+output.txt
+output.json
+outputlog.txt
+Test_app*.txt
+test_output*.txt
+
+# Temporary analysis files
+*.tmp
+*.bak
+*.backup
+
+# Local development notes (may contain target info)
+notes.md
+notes.txt
+targets.txt
+targets.md
+scope.txt
+scope.md
+
+# NXC database files
+*.db
+
+# ============================================
+# Internal Development Documents - DO NOT COMMIT
+# ============================================
+
+# Analysis and review reports
+*_report.md
+*_analysis.md
+*_review.md
+
+# Internal documentation
+TODO.md
+NOTES.md
+INTERNAL.md
+PRIVATE.md
+*.private.md
+*.internal.md
+
+# Development logs
+dev_log.md
+dev_notes.md
+debug_log.md
+*.dev.md
+
+# Draft documents
+draft_*.md
+*.draft.md
+WIP_*.md
+*.wip.md
+
+# Local scripts
+sync-to-kali.sh
+*.local.sh

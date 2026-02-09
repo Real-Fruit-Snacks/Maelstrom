@@ -1,0 +1,9 @@
+"""
+Maelstrom - NetExec wrapper with enum4linux-ng style output
+"""
+
+__version__ = "1.12.1"
+
+from .cli.main import main
+
+__all__ = ["main"]

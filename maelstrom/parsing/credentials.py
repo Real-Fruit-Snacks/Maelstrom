@@ -1,0 +1,174 @@
+"""Credential parsing from command-line arguments and files."""
+
+import os
+import stat
+import sys
+
+from ..core.constants import RE_NTLM_HASH
+from ..models.credential import Credential
+
+
+def _check_file_permissions(filepath: str) -> None:
+    """Check and warn if credential file has overly permissive permissions.
+
+    Security: Credential files should not be readable by group or other users.
+    This function warns the user but does not block execution.
+
+    Args:
+        filepath: Path to the credential file to check
+    """
+    try:
+        file_stat = os.stat(filepath)
+        mode = file_stat.st_mode
+
+        # Check if group or other has any access
+        if mode & (stat.S_IRWXG | stat.S_IRWXO):
+            print(f"Warning: Credential file '{filepath}' has loose permissions")
+            # Get the actual permission string
+            perms = oct(mode)[-3:]
+            print(f"  Current permissions: {perms}")
+            print(f"  Recommended: chmod 600 {filepath}")
+            print()
+    except OSError:
+        # Can't check permissions - might be Windows or other issue
+        pass
+
+
+def _get_auth_options(args) -> dict:
+    """Extract common authentication options from args.
+
+    Returns a dict of auth options that can be passed to Credential().
+    """
+    return {
+        "domain": args.domain,
+        "local_auth": getattr(args, "local_auth", False),
+        "delegate": getattr(args, "delegate", None),
+        "delegate_self": getattr(args, "delegate_self", False),
+        "kerberos": getattr(args, "kerberos", False),
+        "use_kcache": getattr(args, "use_kcache", False),
+        "aes_key": getattr(args, "aesKey", None),
+        "kdc_host": getattr(args, "kdcHost", None),
+        "pfx_cert": getattr(args, "pfx_cert", None),
+        "pem_cert": getattr(args, "pem_cert", None),
+        "pem_key": getattr(args, "pem_key", None),
+        "pfx_pass": getattr(args, "pfx_pass", None),
+    }
+
+
+def parse_credentials(args) -> list[Credential]:
+    """Parse credentials from args into list of Credential objects.
+
+    Security: Checks file permissions on credential files and warns if
+    they are world-readable or group-readable.
+    """
+    creds = []
+    auth_opts = _get_auth_options(args)
+
+    if args.credfile:
+        # Security check: warn about loose file permissions
+        _check_file_permissions(args.credfile)
+
+        # Parse user:password or user:hash lines from credential file
+        try:
+            with open(args.credfile, encoding="utf-8-sig") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if ":" in line:
+                        # Split on first colon only (passwords may contain colons)
+                        user, secret = line.split(":", 1)
+                        user = user.strip()
+                        secret = secret.strip()
+                        if not user:
+                            continue
+                        # Detect hash vs password (32:32 or 32 hex chars = NTLM hash)
+                        # Note: 32-char hex passwords will be treated as hashes
+                        if RE_NTLM_HASH.match(secret):
+                            creds.append(Credential(user=user, hash=secret, **auth_opts))
+                        else:
+                            creds.append(Credential(user=user, password=secret, **auth_opts))
+        except FileNotFoundError:
+            print(f"Error: Credential file '{args.credfile}' not found")
+            sys.exit(1)
+        except PermissionError:
+            print(f"Error: Permission denied reading '{args.credfile}'")
+            sys.exit(1)
+        except UnicodeDecodeError:
+            print(f"Error: File encoding issue in '{args.credfile}' - ensure UTF-8 encoding")
+            sys.exit(1)
+
+    elif args.userfile:
+        # User file provided - can be paired with -P (passfile) or -p (single password)
+        _check_file_permissions(args.userfile)
+
+        try:
+            with open(args.userfile, encoding="utf-8-sig") as uf:
+                users = [ln.strip() for ln in uf if ln.strip() and not ln.startswith("#")]
+
+            if args.passfile:
+                # -U with -P: pair users and passwords line by line (1:1 mapping)
+                _check_file_permissions(args.passfile)
+                with open(args.passfile, encoding="utf-8-sig") as pf:
+                    passwords = [ln.strip() for ln in pf if ln.strip() and not ln.startswith("#")]
+                if len(users) != len(passwords):
+                    min_count = min(len(users), len(passwords))
+                    print(
+                        f"Warning: User count ({len(users)}) != password count "
+                        f"({len(passwords)}), pairing will be truncated to {min_count}"
+                    )
+                for user, password in zip(users, passwords):
+                    creds.append(Credential(user=user, password=password, **auth_opts))
+            else:
+                # -U with -p or -U alone: spray single password (or empty) across all users
+                password = args.password  # May be None for anonymous/empty password attempts
+                for user in users:
+                    creds.append(Credential(user=user, password=password, **auth_opts))
+
+        except FileNotFoundError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+        except PermissionError as e:
+            print(f"Error: Permission denied - {e}")
+            sys.exit(1)
+        except UnicodeDecodeError as e:
+            print(f"Error: File encoding issue - ensure UTF-8 encoding: {e}")
+            sys.exit(1)
+
+    elif args.passfile and args.user:
+        # -u with -P: try all passwords against single user (password guessing)
+        _check_file_permissions(args.passfile)
+
+        try:
+            with open(args.passfile, encoding="utf-8-sig") as pf:
+                passwords = [ln.strip() for ln in pf if ln.strip() and not ln.startswith("#")]
+            for password in passwords:
+                creds.append(Credential(user=args.user, password=password, **auth_opts))
+        except FileNotFoundError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+        except PermissionError as e:
+            print(f"Error: Permission denied - {e}")
+            sys.exit(1)
+        except UnicodeDecodeError as e:
+            print(f"Error: File encoding issue - ensure UTF-8 encoding: {e}")
+            sys.exit(1)
+
+    elif args.user:
+        # Single credential (backward compatible)
+        creds.append(
+            Credential(user=args.user, password=args.password, hash=args.hash, **auth_opts)
+        )
+
+    # Special case: allow use_kcache without explicit user
+    elif auth_opts.get("use_kcache"):
+        # When using ccache, the user comes from the ticket
+        creds.append(
+            Credential(
+                user="",
+                use_kcache=True,
+                **{k: v for k, v in auth_opts.items() if k != "use_kcache"},
+            )
+        )
+
+    return creds
