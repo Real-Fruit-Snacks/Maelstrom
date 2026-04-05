@@ -1,0 +1,105 @@
+name: Bug Report
+description: Report a bug in Maelstrom
+labels: ["bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Please fill out the information below to help us investigate.
+
+  - type: input
+    id: version
+    attributes:
+      label: Maelstrom Version
+      description: "Output of `maelstrom --version` or the release tag"
+      placeholder: "1.12.1"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS / Platform
+      description: "Operating system and architecture"
+      placeholder: "Ubuntu 24.04 x86_64 / Kali 2024.4 / Windows 11"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: "Output of `python --version`"
+      placeholder: "3.10.12"
+    validations:
+      required: true
+
+  - type: input
+    id: nxc-version
+    attributes:
+      label: NetExec Version
+      description: "Output of `nxc --version`"
+      placeholder: "1.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Affected Module
+      description: "Which module was being used when the bug occurred?"
+      options:
+        - All modules (-A)
+        - Users
+        - Groups
+        - Shares
+        - LAPS
+        - Kerberoastable
+        - Delegation
+        - ADCS
+        - MSSQL
+        - Multi-target scanning
+        - Multi-credential mode
+        - Next steps / recommendations
+        - Output / formatting
+        - Other (describe in steps below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: "Provide the exact command and steps (redact credentials and target IPs)"
+      placeholder: |
+        1. Run `maelstrom 10.x.x.x -u user -p pass -d DOMAIN --shares`
+        2. Wait for enumeration to complete
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: "What did you expect to happen?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: "What actually happened?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Output
+      description: "Paste any relevant error messages or terminal output (try running with --debug). Redact credentials and sensitive target information."
+      render: shell
+    validations:
+      required: false

@@ -1,1072 +1,846 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maelstrom — Active Directory Enumeration Engine</title>
-  <meta name="description" content="NetExec wrapper combining 35+ enumeration modules across SMB, LDAP, MSSQL, RDP, FTP, and NFS into a single command with colored output, multi-target scanning, and actionable recommendations.">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8C%80%3C/text%3E%3C/svg%3E">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-  <style>
-    /* =========================================================
-       MAELSTROM LANDING PAGE
-       Catppuccin Mocha palette
-       ========================================================= */
-
-    *, *::before, *::after {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    :root {
-      --ctp-rosewater: #f5e0dc;
-      --ctp-flamingo: #f2cdcd;
-      --ctp-pink: #f5c2e7;
-      --ctp-mauve: #cba6f7;
-      --ctp-red: #f38ba8;
-      --ctp-maroon: #eba0ac;
-      --ctp-peach: #fab387;
-      --ctp-yellow: #f9e2af;
-      --ctp-green: #a6e3a1;
-      --ctp-teal: #94e2d5;
-      --ctp-sky: #89dceb;
-      --ctp-sapphire: #74c7ec;
-      --ctp-blue: #89b4fa;
-      --ctp-lavender: #b4befe;
-      --ctp-text: #cdd6f4;
-      --ctp-subtext1: #bac2de;
-      --ctp-subtext0: #a6adc8;
-      --ctp-overlay2: #9399b2;
-      --ctp-overlay1: #7f849c;
-      --ctp-overlay0: #6c7086;
-      --ctp-surface2: #585b70;
-      --ctp-surface1: #45475a;
-      --ctp-surface0: #313244;
-      --ctp-base: #1e1e2e;
-      --ctp-mantle: #181825;
-      --ctp-crust: #11111b;
-    }
-
-    html {
-      scroll-behavior: smooth;
-      scrollbar-width: thin;
-      scrollbar-color: var(--ctp-surface1) var(--ctp-crust);
-    }
-
-    body {
-      font-family: 'JetBrains Mono', monospace;
-      background-color: var(--ctp-crust);
-      color: var(--ctp-text);
-      line-height: 1.7;
-      font-size: 15px;
-      overflow-x: hidden;
-      position: relative;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: radial-gradient(var(--ctp-surface0) 1px, transparent 1px);
-      background-size: 24px 24px;
-      opacity: 0.3;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.03) 2px,
-        rgba(0, 0, 0, 0.03) 4px
-      );
-      pointer-events: none;
-      z-index: 9999;
-    }
-
-    .page-wrap {
-      position: relative;
-      z-index: 1;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    section {
-      margin-bottom: 96px;
-    }
-
-    a {
-      color: var(--ctp-blue);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    a:hover {
-      color: var(--ctp-sapphire);
-    }
-
-    .section-label {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--ctp-overlay0);
-      border: 1px solid var(--ctp-surface1);
-      padding: 4px 12px;
-      border-radius: 2px;
-      margin-bottom: 20px;
-    }
-
-    .section-title {
-      font-size: clamp(22px, 3vw, 30px);
-      font-weight: 700;
-      color: var(--ctp-text);
-      margin-bottom: 12px;
-      line-height: 1.3;
-    }
-
-    .section-desc {
-      color: var(--ctp-subtext0);
-      font-size: 14px;
-      max-width: 600px;
-      margin-bottom: 40px;
-    }
-
-    /* =========================================================
-       HERO
-       ========================================================= */
-    .hero {
-      padding: 80px 0 48px;
-      text-align: center;
-      margin-bottom: 64px;
-    }
-
-    .hero-terminal {
-      border: 1px solid var(--ctp-surface1);
-      border-radius: 8px;
-      background: var(--ctp-mantle);
-      max-width: 780px;
-      margin: 0 auto;
-      overflow: hidden;
-      box-shadow:
-        0 0 0 1px var(--ctp-surface0),
-        0 24px 80px -12px rgba(0, 0, 0, 0.6),
-        0 0 120px -40px rgba(137, 180, 250, 0.08);
-    }
-
-    .hero-titlebar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 16px;
-      background: var(--ctp-crust);
-      border-bottom: 1px solid var(--ctp-surface0);
-    }
-
-    .hero-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-    }
-
-    .hero-dot--red { background: var(--ctp-red); }
-    .hero-dot--yellow { background: var(--ctp-yellow); }
-    .hero-dot--green { background: var(--ctp-green); }
-
-    .hero-titlebar-text {
-      flex: 1;
-      text-align: center;
-      font-size: 12px;
-      color: var(--ctp-overlay0);
-      letter-spacing: 0.05em;
-    }
-
-    .hero-body {
-      padding: 48px 40px 56px;
-    }
-
-    .hero-prompt {
-      font-size: 13px;
-      color: var(--ctp-overlay0);
-      margin-bottom: 24px;
-      letter-spacing: 0.02em;
-    }
-
-    .hero-prompt .prompt-symbol {
-      color: var(--ctp-green);
-    }
-
-    .hero-prompt .prompt-path {
-      color: var(--ctp-blue);
-    }
-
-    .hero-title {
-      font-size: clamp(42px, 7vw, 72px);
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      line-height: 1.05;
-      margin-bottom: 8px;
-      background: linear-gradient(
-        135deg,
-        var(--ctp-blue) 0%,
-        var(--ctp-sapphire) 30%,
-        var(--ctp-teal) 60%,
-        var(--ctp-green) 100%
-      );
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      filter: drop-shadow(0 0 40px rgba(137, 180, 250, 0.2));
-    }
-
-    .hero-cursor {
-      display: inline-block;
-      width: 3px;
-      height: 0.8em;
-      background: var(--ctp-green);
-      margin-left: 4px;
-      vertical-align: baseline;
-      animation: blink 1s step-end infinite;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    .hero-tagline {
-      font-size: clamp(14px, 2vw, 17px);
-      color: var(--ctp-subtext0);
-      margin-bottom: 36px;
-      font-weight: 400;
-      line-height: 1.6;
-    }
-
-    .hero-tagline em {
-      color: var(--ctp-subtext1);
-      font-style: normal;
-    }
-
-    .hero-buttons {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 28px;
-      border-radius: 4px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-decoration: none;
-    }
-
-    .btn-primary {
-      background: var(--ctp-blue);
-      color: var(--ctp-crust);
-      border-color: var(--ctp-blue);
-    }
-
-    .btn-primary:hover {
-      background: var(--ctp-sapphire);
-      border-color: var(--ctp-sapphire);
-      color: var(--ctp-crust);
-      box-shadow: 0 0 24px rgba(137, 180, 250, 0.25);
-    }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--ctp-subtext1);
-      border-color: var(--ctp-surface1);
-    }
-
-    .btn-ghost:hover {
-      color: var(--ctp-text);
-      border-color: var(--ctp-overlay0);
-      background: var(--ctp-surface0);
-    }
-
-    /* =========================================================
-       FEATURES GRID
-       ========================================================= */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-    }
-
-    .feature-card {
-      background: var(--ctp-mantle);
-      border: 1px solid var(--ctp-surface0);
-      border-radius: 6px;
-      padding: 28px 24px;
-      transition: all 0.25s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .feature-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--ctp-blue), transparent);
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    .feature-card:hover {
-      border-color: var(--ctp-surface1);
-      background: var(--ctp-base);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.4);
-    }
-
-    .feature-card:hover::before {
-      opacity: 1;
-    }
-
-    .feature-icon {
-      font-size: 24px;
-      margin-bottom: 16px;
-      display: block;
-      width: 44px;
-      height: 44px;
-      line-height: 44px;
-      text-align: center;
-      background: var(--ctp-surface0);
-      border-radius: 8px;
-      border: 1px solid var(--ctp-surface1);
-    }
-
-    .feature-card h3 {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--ctp-text);
-      margin-bottom: 8px;
-    }
-
-    .feature-card p {
-      font-size: 13px;
-      color: var(--ctp-subtext0);
-      line-height: 1.6;
-    }
-
-    .feature-card:nth-child(1):hover { border-color: var(--ctp-blue); }
-    .feature-card:nth-child(1):hover::before { background: linear-gradient(90deg, transparent, var(--ctp-blue), transparent); }
-    .feature-card:nth-child(2):hover { border-color: var(--ctp-green); }
-    .feature-card:nth-child(2):hover::before { background: linear-gradient(90deg, transparent, var(--ctp-green), transparent); }
-    .feature-card:nth-child(3):hover { border-color: var(--ctp-mauve); }
-    .feature-card:nth-child(3):hover::before { background: linear-gradient(90deg, transparent, var(--ctp-mauve), transparent); }
-    .feature-card:nth-child(4):hover { border-color: var(--ctp-peach); }
-    .feature-card:nth-child(4):hover::before { background: linear-gradient(90deg, transparent, var(--ctp-peach), transparent); }
-    .feature-card:nth-child(5):hover { border-color: var(--ctp-teal); }
-    .feature-card:nth-child(5):hover::before { background: linear-gradient(90deg, transparent, var(--ctp-teal), transparent); }
-    .feature-card:nth-child(6):hover { border-color: var(--ctp-yellow); }
-    .feature-card:nth-child(6):hover::before { background: linear-gradient(90deg, transparent, var(--ctp-yellow), transparent); }
-    .feature-card:nth-child(7):hover { border-color: var(--ctp-red); }
-    .feature-card:nth-child(7):hover::before { background: linear-gradient(90deg, transparent, var(--ctp-red), transparent); }
-    .feature-card:nth-child(8):hover { border-color: var(--ctp-flamingo); }
-    .feature-card:nth-child(8):hover::before { background: linear-gradient(90deg, transparent, var(--ctp-flamingo), transparent); }
-
-    /* =========================================================
-       EXAMPLE OUTPUT
-       ========================================================= */
-    .output-section {
-      text-align: center;
-    }
-
-    .output-frame {
-      border: 1px solid var(--ctp-surface1);
-      border-radius: 8px;
-      overflow: hidden;
-      background: var(--ctp-mantle);
-      box-shadow:
-        0 0 0 1px var(--ctp-surface0),
-        0 32px 80px -16px rgba(0, 0, 0, 0.5),
-        0 0 160px -60px rgba(137, 180, 250, 0.06);
-      max-width: 1000px;
-      margin: 0 auto;
-      text-align: left;
-    }
-
-    .output-titlebar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      background: var(--ctp-crust);
-      border-bottom: 1px solid var(--ctp-surface0);
-    }
-
-    .output-titlebar-text {
-      flex: 1;
-      text-align: center;
-      font-size: 12px;
-      color: var(--ctp-overlay0);
-    }
-
-    .output-body {
-      padding: 24px 32px;
-      font-size: 13px;
-      line-height: 1.7;
-      overflow-x: auto;
-    }
-
-    .output-body .o-header {
-      color: var(--ctp-sapphire);
-      font-weight: 600;
-    }
-
-    .output-body .o-success {
-      color: var(--ctp-green);
-    }
-
-    .output-body .o-warning {
-      color: var(--ctp-yellow);
-    }
-
-    .output-body .o-error {
-      color: var(--ctp-red);
-    }
-
-    .output-body .o-info {
-      color: var(--ctp-blue);
-    }
-
-    .output-body .o-dim {
-      color: var(--ctp-overlay0);
-    }
-
-    .output-body .o-value {
-      color: var(--ctp-peach);
-    }
-
-    .output-caption {
-      margin-top: 20px;
-      font-size: 13px;
-      color: var(--ctp-overlay1);
-      font-style: italic;
-    }
-
-    /* =========================================================
-       ARCHITECTURE
-       ========================================================= */
-    .arch-terminal {
-      border: 1px solid var(--ctp-surface1);
-      border-radius: 8px;
-      overflow: hidden;
-      background: var(--ctp-mantle);
-      box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.4);
-    }
-
-    .arch-titlebar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      background: var(--ctp-crust);
-      border-bottom: 1px solid var(--ctp-surface0);
-    }
-
-    .arch-titlebar-text {
-      flex: 1;
-      text-align: center;
-      font-size: 12px;
-      color: var(--ctp-overlay0);
-    }
-
-    .arch-body {
-      padding: 32px;
-    }
-
-    .arch-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 24px;
-    }
-
-    .arch-item {
-      padding: 20px;
-      border: 1px solid var(--ctp-surface0);
-      border-radius: 4px;
-      background: var(--ctp-base);
-    }
-
-    .arch-item-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    .arch-item-marker {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--ctp-crust);
-      background: var(--ctp-blue);
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 3px;
-      flex-shrink: 0;
-    }
-
-    .arch-item:nth-child(2) .arch-item-marker { background: var(--ctp-green); }
-    .arch-item:nth-child(3) .arch-item-marker { background: var(--ctp-peach); }
-    .arch-item:nth-child(4) .arch-item-marker { background: var(--ctp-red); }
-
-    .arch-item h3 {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--ctp-text);
-    }
-
-    .arch-item p {
-      font-size: 13px;
-      color: var(--ctp-subtext0);
-      line-height: 1.6;
-    }
-
-    .arch-item code {
-      font-size: 12px;
-      color: var(--ctp-mauve);
-      background: var(--ctp-surface0);
-      padding: 1px 6px;
-      border-radius: 3px;
-    }
-
-    .arch-divider {
-      border: none;
-      border-top: 1px dashed var(--ctp-surface1);
-      margin: 28px 0;
-    }
-
-    .arch-stack {
-      font-size: 13px;
-      color: var(--ctp-subtext0);
-      text-align: center;
-    }
-
-    .arch-stack span {
-      display: inline-block;
-      padding: 4px 14px;
-      border: 1px solid var(--ctp-surface1);
-      border-radius: 3px;
-      margin: 4px;
-      background: var(--ctp-base);
-      color: var(--ctp-subtext1);
-      font-size: 12px;
-    }
-
-    /* =========================================================
-       GETTING STARTED
-       ========================================================= */
-    .start-row {
-      display: flex;
-      gap: 40px;
-      align-items: flex-start;
-    }
-
-    .start-terminal {
-      border: 1px solid var(--ctp-surface1);
-      border-radius: 8px;
-      overflow: hidden;
-      background: var(--ctp-mantle);
-      box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.4);
-      flex: 1;
-      min-width: 0;
-    }
-
-    .start-titlebar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      background: var(--ctp-crust);
-      border-bottom: 1px solid var(--ctp-surface0);
-    }
-
-    .start-titlebar-text {
-      flex: 1;
-      text-align: center;
-      font-size: 12px;
-      color: var(--ctp-overlay0);
-    }
-
-    .start-body {
-      padding: 28px 32px;
-    }
-
-    .start-line {
-      margin-bottom: 4px;
-      font-size: 14px;
-      line-height: 1.8;
-    }
-
-    .start-line .prompt {
-      color: var(--ctp-green);
-      user-select: none;
-    }
-
-    .start-line .cmd {
-      color: var(--ctp-text);
-    }
-
-    .start-line .comment {
-      color: var(--ctp-overlay0);
-    }
-
-    .start-line .flag {
-      color: var(--ctp-peach);
-    }
-
-    .start-line .arg {
-      color: var(--ctp-yellow);
-    }
-
-    .start-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .start-info p {
-      font-size: 14px;
-      color: var(--ctp-subtext0);
-      margin-bottom: 12px;
-      line-height: 1.7;
-    }
-
-    .start-info code {
-      font-size: 13px;
-      color: var(--ctp-peach);
-      background: var(--ctp-surface0);
-      padding: 2px 8px;
-      border-radius: 3px;
-      border: 1px solid var(--ctp-surface1);
-    }
-
-    /* =========================================================
-       FOOTER
-       ========================================================= */
-    .site-footer {
-      border-top: 1px solid var(--ctp-surface0);
-      padding: 48px 0;
-      text-align: center;
-      margin-top: 32px;
-    }
-
-    .footer-tagline {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--ctp-subtext1);
-      margin-bottom: 24px;
-      letter-spacing: 0.02em;
-    }
-
-    .footer-links {
-      display: flex;
-      justify-content: center;
-      gap: 32px;
-      margin-bottom: 28px;
-      flex-wrap: wrap;
-    }
-
-    .footer-links a {
-      font-size: 13px;
-      color: var(--ctp-overlay1);
-      transition: color 0.2s;
-    }
-
-    .footer-links a:hover {
-      color: var(--ctp-blue);
-    }
-
-    .footer-copy {
-      font-size: 12px;
-      color: var(--ctp-overlay0);
-    }
-
-    /* =========================================================
-       RESPONSIVE
-       ========================================================= */
-    @media (max-width: 900px) {
-      .features-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .arch-grid {
-        grid-template-columns: 1fr;
-      }
-      .hero-body {
-        padding: 36px 24px 44px;
-      }
-      .start-row {
-        flex-direction: column;
-        gap: 24px;
-      }
-    }
-
-    @media (max-width: 600px) {
-      body {
-        font-size: 14px;
-      }
-      .page-wrap {
-        padding: 0 16px;
-      }
-      .features-grid {
-        grid-template-columns: 1fr;
-      }
-      section {
-        margin-bottom: 64px;
-      }
-      .hero {
-        padding: 48px 0 32px;
-      }
-      .hero-body {
-        padding: 28px 20px 36px;
-      }
-      .hero-buttons {
-        flex-direction: column;
-        align-items: center;
-      }
-      .btn {
-        width: 100%;
-        max-width: 260px;
-        justify-content: center;
-      }
-      .arch-body {
-        padding: 20px;
-      }
-      .start-body {
-        padding: 20px;
-      }
-      .start-line {
-        font-size: 12px;
-      }
-      .feature-card {
-        padding: 22px 20px;
-      }
-    }
-
-    ::selection {
-      background: rgba(137, 180, 250, 0.25);
-      color: var(--ctp-text);
-    }
-
-    a:focus-visible,
-    .btn:focus-visible {
-      outline: 2px solid var(--ctp-blue);
-      outline-offset: 2px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maelstrom — NetExec AD Enumeration Engine</title>
+    <meta name="description" content="NetExec wrapper combining 35+ AD enumeration modules into a single command with colored output, multi-target scanning, and actionable recommendations.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8C%80%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --red: #f38ba8;
+            --maroon: #eba0ac;
+            --pink: #f5c2e7;
+            --mauve: #cba6f7;
+            --lavender: #b4befe;
+            --blue: #89b4fa;
+            --sapphire: #74c7ec;
+            --sky: #89dceb;
+            --teal: #94e2d5;
+            --green: #a6e3a1;
+            --yellow: #f9e2af;
+            --peach: #fab387;
+            --text: #cdd6f4;
+            --subtext1: #bac2de;
+            --subtext0: #a6adc8;
+            --overlay2: #9399b2;
+            --overlay1: #7f849c;
+            --overlay0: #6c7086;
+            --surface2: #585b70;
+            --surface1: #45475a;
+            --surface0: #313244;
+            --base: #1e1e2e;
+            --mantle: #181825;
+            --crust: #11111b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--base);
+            color: var(--text);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(circle, var(--overlay0) 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px);
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.4;
+        }
+
+        ::selection { background: rgba(148, 226, 213, 0.3); color: var(--text); }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--mantle);
+            padding: 2px 7px;
+            border-radius: 3px;
+            font-size: 0.88em;
+            color: var(--green);
+        }
+
+        .container { max-width: 1140px; margin: 0 auto; padding: 0 28px; }
+
+        /* -- Hero -- */
+        .hero {
+            padding: 100px 0 70px;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--surface1), transparent);
+        }
+
+        .hero-logo {
+            max-width: 440px;
+            margin: 0 auto 32px;
+        }
+
+        .hero-logo img { width: 100%; height: auto; }
+
+        .hero .subtitle {
+            font-size: clamp(15px, 2vw, 18px);
+            color: var(--subtext0);
+            max-width: 680px;
+            margin: 0 auto 28px;
+            line-height: 1.7;
+        }
+
+        .hero .warning {
+            background: rgba(243, 139, 168, 0.07);
+            border: 1px solid rgba(243, 139, 168, 0.3);
+            border-radius: 6px;
+            padding: 14px 24px;
+            margin: 28px auto;
+            max-width: 720px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--subtext1);
+        }
+
+        .hero .warning strong { color: var(--red); }
+
+        /* -- Stats -- */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin: 48px 0;
+        }
+
+        .stat {
+            background: var(--surface0);
+            border: 1px solid var(--surface1);
+            border-radius: 8px;
+            padding: 20px 16px;
+            text-align: center;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .stat:hover { transform: translateY(-2px); border-color: var(--surface2); }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--teal);
+            line-height: 1;
+        }
+
+        .stat-label { font-size: 12px; color: var(--overlay1); margin-top: 6px; letter-spacing: 0.03em; }
+
+        /* -- CTAs -- */
+        .cta-group { display: flex; gap: 14px; justify-content: center; margin-top: 36px; }
+
+        .btn {
+            padding: 13px 32px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            letter-spacing: 0.03em;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--teal), var(--green));
+            color: var(--crust);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 24px rgba(148, 226, 213, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--surface0);
+            color: var(--text);
+            border: 1px solid var(--surface1);
+        }
+
+        .btn-secondary:hover { background: var(--surface1); border-color: var(--surface2); }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--subtext1);
+            border: 1px solid var(--surface1);
+        }
+
+        .btn-ghost:hover { background: var(--surface0); color: var(--text); }
+
+        /* -- Sections -- */
+        section { padding: 72px 0; }
+
+        section h2 {
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text);
+            letter-spacing: -0.02em;
+        }
+
+        section .section-desc {
+            font-size: 15px;
+            color: var(--subtext0);
+            margin-bottom: 44px;
+            max-width: 640px;
+            line-height: 1.7;
+        }
+
+        /* -- Feature Grid -- */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .feature {
+            background: var(--surface0);
+            border: 1px solid var(--surface1);
+            border-radius: 8px;
+            padding: 28px;
+            transition: all 0.25s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--teal), var(--green));
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+
+        .feature:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+            border-color: var(--surface2);
+        }
+
+        .feature:hover::before { opacity: 1; }
+
+        .feature h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--teal);
+            margin-bottom: 10px;
+            letter-spacing: 0.02em;
+        }
+
+        .feature p { font-size: 13.5px; color: var(--subtext1); line-height: 1.65; }
+
+        /* -- Mode Cards -- */
+        .modes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .mode-card {
+            background: var(--surface0);
+            border: 1px solid var(--surface1);
+            border-radius: 8px;
+            padding: 28px;
+            transition: all 0.25s;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--surface2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .mode-card h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--teal);
+            margin-bottom: 8px;
+        }
+
+        .mode-card p { font-size: 13px; color: var(--subtext1); line-height: 1.6; margin-bottom: 14px; }
+
+        .mode-card .mode-cmd {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--green);
+            background: var(--mantle);
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: block;
+            overflow-x: auto;
+        }
+
+        /* -- Capabilities -- */
+        .capabilities {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+            gap: 10px;
+        }
+
+        .capability {
+            background: var(--surface0);
+            border: 1px solid var(--surface1);
+            border-radius: 20px;
+            padding: 9px 18px;
+            font-size: 12.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .capability:hover { border-color: var(--surface2); background: var(--surface1); }
+
+        .cap-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .cap-dot.full { background: var(--green); }
+        .cap-dot.partial { background: var(--yellow); }
+        .cap-dot.none { background: var(--surface2); }
+
+        /* -- Terminal -- */
+        .terminal {
+            background: var(--mantle);
+            border: 1px solid var(--surface1);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .terminal-bar {
+            background: var(--crust);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--surface0);
+        }
+
+        .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .terminal-dot:nth-child(1) { background: var(--red); }
+        .terminal-dot:nth-child(2) { background: var(--yellow); }
+        .terminal-dot:nth-child(3) { background: var(--green); }
+        .terminal-label { flex: 1; text-align: center; font-size: 11px; color: var(--overlay0); font-family: 'JetBrains Mono', monospace; }
+
+        .terminal-body {
+            padding: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .terminal-body pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
+        .terminal-body .p { color: var(--green); }
+        .terminal-body .c { color: var(--overlay0); }
+        .terminal-body .v { color: var(--sapphire); }
+        .terminal-body .f { color: var(--peach); }
+
+        /* -- Architecture -- */
+        .arch-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .arch-card {
+            background: var(--surface0);
+            border: 1px solid var(--surface1);
+            border-radius: 8px;
+            padding: 28px;
+            transition: border-color 0.2s;
+        }
+
+        .arch-card:hover { border-color: var(--surface2); }
+
+        .arch-num {
+            display: inline-flex;
+            width: 30px; height: 30px;
+            background: linear-gradient(135deg, var(--teal), var(--green));
+            color: var(--crust);
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 14px;
+        }
+
+        .arch-card h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--teal);
+            margin-bottom: 10px;
+        }
+
+        .arch-card p { font-size: 13.5px; color: var(--subtext1); line-height: 1.6; }
+
+        /* -- Two Column -- */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+
+        /* -- Detection Awareness -- */
+        .detection-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .detection-card {
+            background: var(--surface0);
+            border: 1px solid var(--surface1);
+            border-radius: 8px;
+            padding: 28px;
+        }
+
+        .detection-card h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .detection-card.safe h3 { color: var(--green); }
+        .detection-card.visible h3 { color: var(--yellow); }
+
+        .detection-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .detection-card li {
+            font-size: 13px;
+            color: var(--subtext1);
+            padding: 6px 0;
+            border-bottom: 1px solid var(--surface1);
+            line-height: 1.5;
+        }
+
+        .detection-card li:last-child { border-bottom: none; }
+
+        /* -- Footer -- */
+        footer {
+            border-top: 1px solid var(--surface1);
+            padding: 48px 0;
+            margin-top: 80px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 32px;
+        }
+
+        .footer-grid h4 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text);
+            margin-bottom: 14px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .footer-grid ul { list-style: none; }
+        .footer-grid li { margin-bottom: 8px; }
+        .footer-grid a { color: var(--overlay2); text-decoration: none; font-size: 13px; transition: color 0.2s; }
+        .footer-grid a:hover { color: var(--teal); }
+
+        .footer-grid p { font-size: 13px; color: var(--overlay1); line-height: 1.7; }
+
+        .footer-bottom {
+            text-align: center;
+            margin-top: 36px;
+            padding-top: 24px;
+            border-top: 1px solid var(--surface0);
+            font-size: 12px;
+            color: var(--overlay0);
+            letter-spacing: 0.02em;
+        }
+
+        /* -- Responsive -- */
+        @media (max-width: 960px) {
+            .stats { grid-template-columns: repeat(3, 1fr); }
+            .modes-grid, .two-col, .arch-grid, .detection-grid { grid-template-columns: 1fr; }
+            .footer-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 0 16px; }
+            .hero { padding: 60px 0 48px; }
+            section { padding: 48px 0; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .cta-group { flex-direction: column; align-items: center; }
+            .btn { width: 100%; max-width: 280px; text-align: center; }
+            .features { grid-template-columns: 1fr; }
+            .footer-grid { grid-template-columns: 1fr; }
+        }
+
+        a:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+    </style>
 </head>
 <body>
 
-<div class="page-wrap">
-
-  <!-- ============ HERO ============ -->
-  <section class="hero" id="top">
-    <div class="hero-terminal">
-      <div class="hero-titlebar">
-        <span class="hero-dot hero-dot--red"></span>
-        <span class="hero-dot hero-dot--yellow"></span>
-        <span class="hero-dot hero-dot--green"></span>
-        <span class="hero-titlebar-text">maelstrom -- AD enumeration engine</span>
-      </div>
-      <div class="hero-body">
-        <h1 class="hero-title">Maelstrom<span class="hero-cursor" aria-hidden="true"></span></h1>
-        <p class="hero-tagline">
-          <em>35+ enumeration modules</em> across SMB, LDAP, MSSQL,<br>
-          RDP, FTP, and NFS in a single command
-        </p>
-        <div class="hero-buttons">
-          <a href="#getting-started" class="btn btn-primary">Get Started</a>
-          <a href="https://github.com/Real-Fruit-Snacks/maelstrom" class="btn btn-ghost">View on GitHub</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ FEATURES ============ -->
-  <section id="features">
-    <span class="section-label">// capabilities</span>
-    <h2 class="section-title">Comprehensive AD enumeration</h2>
-    <p class="section-desc">
-      A NetExec wrapper that replaces manual nxc commands with a single automated scan -- colored output, intelligent caching, and actionable recommendations.
-    </p>
-
-    <div class="features-grid">
-      <div class="feature-card">
-        <span class="feature-icon" aria-hidden="true">&#9776;</span>
-        <h3>35+ Modules</h3>
-        <p>Users, groups, shares, LAPS, Kerberoastable, delegation, ADCS, gMSA, GPP, PSO, SCCM. Run all at once or pick specific modules.</p>
-      </div>
-
-      <div class="feature-card">
-        <span class="feature-icon" aria-hidden="true">&#8644;</span>
-        <h3>Multi-Protocol</h3>
-        <p>SMB, LDAP, MSSQL, RDP, FTP, NFS, and VNC in a single scan. Port availability is auto-detected before each module runs.</p>
-      </div>
-
-      <div class="feature-card">
-        <span class="feature-icon" aria-hidden="true">&#9881;</span>
-        <h3>Multi-Target</h3>
-        <p>CIDR ranges, IP ranges, and target files. Parallel host discovery scans /24 networks in seconds with aggregate summary.</p>
-      </div>
-
-      <div class="feature-card">
-        <span class="feature-icon" aria-hidden="true">&#128273;</span>
-        <h3>Multi-Credential</h3>
-        <p>Test multiple credentials with <code style="font-size:12px;color:var(--ctp-mauve);background:var(--ctp-surface0);padding:1px 5px;border-radius:3px;">-C creds.txt</code>. Visual share access matrix, admin detection, and access comparison.</p>
-      </div>
-
-      <div class="feature-card">
-        <span class="feature-icon" aria-hidden="true">&#10148;</span>
-        <h3>Next Steps</h3>
-        <p>Findings generate ready-to-run commands with your credentials auto-filled. Priority-ranked with auto-exploit warnings.</p>
-      </div>
-
-      <div class="feature-card">
-        <span class="feature-icon" aria-hidden="true">&#9998;</span>
-        <h3>Copy-Paste Output</h3>
-        <p>Clean line-by-line lists of usernames, SPNs, shares, computers. Pipe directly to other tools or save to files.</p>
-      </div>
-
-      <div class="feature-card">
-        <span class="feature-icon" aria-hidden="true">&#9673;</span>
-        <h3>Zero Dependencies</h3>
-        <p>Only requires Python 3.10+ and NetExec on your PATH. No pip packages, no virtual environments, no build steps.</p>
-      </div>
-
-      <div class="feature-card">
-        <span class="feature-icon" aria-hidden="true">&#9788;</span>
-        <h3>Proxy Mode</h3>
-        <p>Full proxychains/SOCKS support. Auto-reduces concurrency, increases timeouts, skips incompatible modules.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ EXAMPLE OUTPUT ============ -->
-  <section class="output-section" id="output">
-    <span class="section-label">// in action</span>
-    <h2 class="section-title">Findings at a glance</h2>
-    <p class="section-desc" style="margin-left:auto;margin-right:auto;">
-      Colored indicators, organized sections, and actionable recommendations -- all from a single command.
-    </p>
-
-    <div class="output-frame">
-      <div class="output-titlebar">
-        <span class="hero-dot hero-dot--red"></span>
-        <span class="hero-dot hero-dot--yellow"></span>
-        <span class="hero-dot hero-dot--green"></span>
-        <span class="output-titlebar-text"></span>
-      </div>
-      <div class="output-body">
-        <div><span class="o-header"> ============================================</span></div>
-        <div><span class="o-header">|    LDAP Security Configuration for 10.0.0.1    |</span></div>
-        <div><span class="o-header"> ============================================</span></div>
-        <br>
-        <div>[<span class="o-warning">!</span>] LDAP Signing: <span class="o-error">NOT REQUIRED</span></div>
-        <div><span class="o-dim">    Vulnerable to LDAP relay attacks</span></div>
-        <div>[<span class="o-warning">!</span>] Channel Binding: <span class="o-error">NOT ENFORCED</span></div>
-        <br>
-        <div><span class="o-header"> ============================================</span></div>
-        <div><span class="o-header">|    LAPS Deployment Check for 10.0.0.1    |</span></div>
-        <div><span class="o-header"> ============================================</span></div>
-        <br>
-        <div>[<span class="o-success">+</span>] Found <span class="o-value">15</span> computer(s) with LAPS configured</div>
-        <div>[<span class="o-warning">!</span>] Current user <span class="o-error">CAN read LAPS passwords!</span></div>
-        <br>
-        <div><span class="o-header"> ============================================</span></div>
-        <div><span class="o-header">|    Next Steps    |</span></div>
-        <div><span class="o-header"> ============================================</span></div>
-        <br>
-        <div><span class="o-error">HIGH PRIORITY (2)</span></div>
-        <div><span class="o-dim">------------------------------------------------------------</span></div>
-        <div>  <span class="o-success">&#10148;</span> LAPS readable on <span class="o-value">15</span> computers</div>
-        <div><span class="o-dim">    Retrieve LAPS passwords for local admin access</span></div>
-        <div>    <span class="o-info">$ nxc ldap 10.0.0.1 -u 'admin' -p 'pass' -M laps</span></div>
-        <br>
-        <div>  <span class="o-success">&#10148;</span> Kerberoastable accounts: <span class="o-value">svc_sql, svc_backup</span></div>
-        <div><span class="o-dim">    Request TGS tickets for offline cracking</span></div>
-        <div>    <span class="o-info">$ nxc ldap 10.0.0.1 -u 'admin' -p 'pass' --kerberoasting hashes.txt</span></div>
-      </div>
-    </div>
-    <p class="output-caption">Security findings with actionable next steps -- credentials auto-filled from your input.</p>
-  </section>
-
-  <!-- ============ ARCHITECTURE ============ -->
-  <section id="architecture">
-    <span class="section-label">// architecture</span>
-    <h2 class="section-title">Pure Python. Zero dependencies.</h2>
-    <p class="section-desc">
-      No pip packages, no build step. Shells out to NetExec for network operations, parses the output, and presents findings with context.
-    </p>
-
-    <div class="arch-terminal">
-      <div class="arch-titlebar">
-        <span class="hero-dot hero-dot--red"></span>
-        <span class="hero-dot hero-dot--yellow"></span>
-        <span class="hero-dot hero-dot--green"></span>
-        <span class="arch-titlebar-text">system architecture</span>
-      </div>
-      <div class="arch-body">
-        <div class="arch-grid">
-          <div class="arch-item">
-            <div class="arch-item-header">
-              <span class="arch-item-marker">01</span>
-              <h3>Parallel Execution</h3>
+    <!-- ======== HERO ======== -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-logo">
+                <img src="https://raw.githubusercontent.com/Real-Fruit-Snacks/Maelstrom/main/docs/assets/logo-dark.svg" alt="Maelstrom">
             </div>
-            <p>
-              <code>ThreadPoolExecutor</code> runs 36 independent modules with 15 workers. Cache priming runs 7 queries in parallel. Multi-target scans use 5 concurrent workers.
-            </p>
-          </div>
 
-          <div class="arch-item">
-            <div class="arch-item-header">
-              <span class="arch-item-marker">02</span>
-              <h3>Smart Caching</h3>
+            <p class="subtitle">
+                NetExec wrapper combining 35+ Active Directory enumeration modules into a single command.
+                Colored output, multi-target scanning, and actionable next-step recommendations.
+            </p>
+
+            <div class="warning">
+                <strong>Authorization Required:</strong> Designed for authorized security testing with explicit written permission. Unauthorized network enumeration is illegal.
             </div>
-            <p>
-              <code>EnumCache</code> stores parsed results from batch LDAP queries. Modules check the cache before making network calls -- 5-10x faster than individual queries.
-            </p>
-          </div>
 
-          <div class="arch-item">
-            <div class="arch-item-header">
-              <span class="arch-item-marker">03</span>
-              <h3>Passive Recon Only</h3>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value">35+</div>
+                    <div class="stat-label">Enum Modules</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">7</div>
+                    <div class="stat-label">Protocols</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">249</div>
+                    <div class="stat-label">Tests</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">15</div>
+                    <div class="stat-label">Parallel Workers</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Dependencies</div>
+                </div>
             </div>
-            <p>
-              LDAP queries, SMB enumeration, RPC calls -- never executes commands on targets. Kerberoasting finds SPNs via LDAP only, doesn't request TGS tickets.
-            </p>
-          </div>
 
-          <div class="arch-item">
-            <div class="arch-item-header">
-              <span class="arch-item-marker">04</span>
-              <h3>Credential Safety</h3>
+            <div class="cta-group">
+                <a href="https://github.com/Real-Fruit-Snacks/Maelstrom#quick-start" class="btn btn-primary">Get Started</a>
+                <a href="https://github.com/Real-Fruit-Snacks/Maelstrom" class="btn btn-secondary">View Source</a>
+                <a href="https://github.com/Real-Fruit-Snacks/Maelstrom#architecture" class="btn btn-ghost">Architecture</a>
             </div>
-            <p>
-              Output files created with <code>0o600</code> permissions. Debug mode redacts passwords and hashes. Warns on overly permissive credential files.
-            </p>
-          </div>
         </div>
+    </section>
 
-        <hr class="arch-divider">
+    <!-- ======== MODES ======== -->
+    <section>
+        <div class="container">
+            <h2>Scan Modes</h2>
+            <p class="section-desc">Single target, CIDR ranges, or credential files. Maelstrom adapts its execution strategy to match your engagement scope.</p>
 
-        <div class="arch-stack">
-          <span>Python 3.10+</span>
-          <span>NetExec</span>
-          <span>ThreadPoolExecutor</span>
-          <span>subprocess</span>
-          <span>Catppuccin Mocha</span>
-          <span>pytest</span>
-          <span>Black</span>
+            <div class="modes-grid">
+                <div class="mode-card">
+                    <h3>Single Target</h3>
+                    <p>Full enumeration against one host. Anonymous probing auto-tests null and guest sessions. Credential mode unlocks all 35+ modules with parallel execution.</p>
+                    <code class="mode-cmd">maelstrom 10.0.0.1 -u admin -p pass -d CORP</code>
+                </div>
+
+                <div class="mode-card">
+                    <h3>Multi-Target</h3>
+                    <p>CIDR ranges, IP ranges, and target files. Parallel host discovery with port 445 pre-scan. Per-target results with aggregate summary.</p>
+                    <code class="mode-cmd">maelstrom 10.0.0.0/24 -u admin -p pass</code>
+                </div>
+
+                <div class="mode-card">
+                    <h3>Multi-Credential</h3>
+                    <p>Test multiple credentials from a file. Visual share access matrix, admin detection, and per-user access comparison across all discovered shares.</p>
+                    <code class="mode-cmd">maelstrom 10.0.0.1 -C creds.txt -d CORP</code>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ============ GETTING STARTED ============ -->
-  <section id="getting-started">
-    <span class="section-label">// quickstart</span>
-    <h2 class="section-title">Running in 30 seconds</h2>
-    <p class="section-desc">
-      Clone, install, scan. No Docker, no build step, no config files. Just Python and NetExec.
-    </p>
+    <!-- ======== FEATURES ======== -->
+    <section style="background: var(--mantle);">
+        <div class="container">
+            <h2>Features</h2>
+            <p class="section-desc">Reconnaissance-only enumeration powered by NetExec. Every module reads data without executing commands on targets.</p>
 
-    <div class="start-row">
-      <div class="start-terminal">
-        <div class="start-titlebar">
-          <span class="hero-dot hero-dot--red"></span>
-          <span class="hero-dot hero-dot--yellow"></span>
-          <span class="hero-dot hero-dot--green"></span>
-          <span class="start-titlebar-text">bash</span>
+            <div class="features">
+                <div class="feature">
+                    <h3>35+ Enum Modules</h3>
+                    <p>Users, groups, shares, LAPS, Kerberoastable, delegation, ADCS, gMSA, GPP, PSO, SCCM, and more. Run all with <code>-A</code> or select specific modules with individual flags.</p>
+                </div>
+                <div class="feature">
+                    <h3>Multi-Protocol</h3>
+                    <p>SMB, LDAP, MSSQL, RDP, FTP, NFS, and VNC enumeration in a single scan. Port availability is auto-detected before each module executes.</p>
+                </div>
+                <div class="feature">
+                    <h3>Actionable Next Steps</h3>
+                    <p>Findings generate ready-to-run commands with credentials auto-filled. Priority-ranked with auto-exploit warnings for dangerous tools like secretsdump.</p>
+                </div>
+                <div class="feature">
+                    <h3>Parallel Execution</h3>
+                    <p>ThreadPoolExecutor with 15 workers for module-level parallelism, 5 workers for multi-target, and 100 for port pre-scanning. Proxy mode auto-reduces to 2.</p>
+                </div>
+                <div class="feature">
+                    <h3>Copy-Paste Output</h3>
+                    <p>Clean line-by-line lists of usernames, SPNs, shares, computers, and more. Pipe directly to other tools or save to files for later processing.</p>
+                </div>
+                <div class="feature">
+                    <h3>Credential Flexibility</h3>
+                    <p>Password, NTLM hash, Kerberos (ccache/AES), and certificate-based PKINIT auth. Anonymous mode auto-probes null and guest sessions.</p>
+                </div>
+                <div class="feature">
+                    <h3>Catppuccin Terminal UI</h3>
+                    <p>24-bit true color output with Catppuccin Mocha palette. enum4linux-ng style indicators: <code>[*]</code> info, <code>[+]</code> success, <code>[-]</code> error, <code>[!]</code> warning.</p>
+                </div>
+                <div class="feature">
+                    <h3>Proxy Mode</h3>
+                    <p>Full proxychains and SOCKS support. Auto-reduces concurrency, increases timeouts, and skips incompatible modules. Detected via <code>LD_PRELOAD</code>.</p>
+                </div>
+                <div class="feature">
+                    <h3>Zero Dependencies</h3>
+                    <p>Pure Python 3.10+ with only stdlib imports. No pip packages, no virtual environments, no build steps. Just Python and NetExec on your PATH.</p>
+                </div>
+            </div>
         </div>
-        <div class="start-body">
-          <div class="start-line">
-            <span class="comment"># Clone and install</span>
-          </div>
-          <div class="start-line">
-            <span class="prompt">$</span> <span class="cmd">git clone</span> <span class="arg">https://github.com/Real-Fruit-Snacks/maelstrom.git</span>
-          </div>
-          <div class="start-line">
-            <span class="prompt">$</span> <span class="cmd">cd</span> <span class="arg">maelstrom</span>
-          </div>
-          <div class="start-line" style="margin-bottom:16px;">
-            <span class="prompt">$</span> <span class="cmd">pip install</span> <span class="flag">-e</span> <span class="arg">.</span>
-          </div>
-          <div class="start-line">
-            <span class="comment"># Anonymous enumeration</span>
-          </div>
-          <div class="start-line" style="margin-bottom:16px;">
-            <span class="prompt">$</span> <span class="cmd">maelstrom</span> <span class="arg">10.0.0.1</span>
-          </div>
-          <div class="start-line">
-            <span class="comment"># Full enumeration with credentials</span>
-          </div>
-          <div class="start-line" style="margin-bottom:16px;">
-            <span class="prompt">$</span> <span class="cmd">maelstrom</span> <span class="arg">10.0.0.1</span> <span class="flag">-u</span> <span class="arg">admin</span> <span class="flag">-p</span> <span class="arg">'Password123'</span> <span class="flag">-d</span> <span class="arg">CORP</span>
-          </div>
-          <div class="start-line">
-            <span class="comment"># Scan a whole subnet</span>
-          </div>
-          <div class="start-line" style="margin-bottom:0;">
-            <span class="prompt">$</span> <span class="cmd">maelstrom</span> <span class="arg">10.0.0.0/24</span> <span class="flag">-u</span> <span class="arg">admin</span> <span class="flag">-p</span> <span class="arg">pass</span>
-          </div>
+    </section>
+
+    <!-- ======== CAPABILITIES ======== -->
+    <section>
+        <div class="container">
+            <h2>Capabilities</h2>
+            <p class="section-desc">Every enumeration module at a glance. Green indicates full support across all platforms.</p>
+
+            <div class="capabilities">
+                <div class="capability"><span class="cap-dot full"></span>Users</div>
+                <div class="capability"><span class="cap-dot full"></span>Groups</div>
+                <div class="capability"><span class="cap-dot full"></span>Shares</div>
+                <div class="capability"><span class="cap-dot full"></span>Share Matrix</div>
+                <div class="capability"><span class="cap-dot full"></span>LAPS</div>
+                <div class="capability"><span class="cap-dot full"></span>Kerberoast</div>
+                <div class="capability"><span class="cap-dot full"></span>AS-REP Roast</div>
+                <div class="capability"><span class="cap-dot full"></span>Delegation</div>
+                <div class="capability"><span class="cap-dot full"></span>ADCS</div>
+                <div class="capability"><span class="cap-dot full"></span>gMSA</div>
+                <div class="capability"><span class="cap-dot full"></span>GPP Passwords</div>
+                <div class="capability"><span class="cap-dot full"></span>PSO</div>
+                <div class="capability"><span class="cap-dot full"></span>SCCM</div>
+                <div class="capability"><span class="cap-dot full"></span>Computers</div>
+                <div class="capability"><span class="cap-dot full"></span>Sessions</div>
+                <div class="capability"><span class="cap-dot full"></span>Policies</div>
+                <div class="capability"><span class="cap-dot full"></span>AV/EDR</div>
+                <div class="capability"><span class="cap-dot full"></span>SMB Signing</div>
+                <div class="capability"><span class="cap-dot full"></span>LDAP Signing</div>
+                <div class="capability"><span class="cap-dot full"></span>MSSQL</div>
+                <div class="capability"><span class="cap-dot full"></span>RDP</div>
+                <div class="capability"><span class="cap-dot full"></span>FTP</div>
+                <div class="capability"><span class="cap-dot full"></span>NFS</div>
+                <div class="capability"><span class="cap-dot full"></span>VNC</div>
+                <div class="capability"><span class="cap-dot full"></span>BitLocker</div>
+                <div class="capability"><span class="cap-dot full"></span>Subnets</div>
+                <div class="capability"><span class="cap-dot full"></span>WebDAV</div>
+                <div class="capability"><span class="cap-dot full"></span>Next Steps</div>
+                <div class="capability"><span class="cap-dot full"></span>Copy-Paste</div>
+                <div class="capability"><span class="cap-dot full"></span>Proxy Mode</div>
+            </div>
+
+            <div style="margin-top: 20px; font-size: 12px; color: var(--overlay0); font-family: 'JetBrains Mono', monospace;">
+                <span style="color: var(--green);">&#9679;</span> Full &nbsp;&nbsp;
+                <span style="color: var(--yellow);">&#9679;</span> Partial &nbsp;&nbsp;
+                <span style="color: var(--surface2);">&#9679;</span> Not Supported
+            </div>
         </div>
-      </div>
+    </section>
 
-      <div class="start-info">
-        <p>
-          With no credentials, Maelstrom auto-probes for <strong style="color:var(--ctp-text);">null sessions</strong>, <strong style="color:var(--ctp-text);">guest access</strong>, and <strong style="color:var(--ctp-text);">LDAP anonymous binds</strong>. If any succeed, enumeration continues automatically.
-        </p>
-        <p>
-          Supports <code>-H</code> for pass-the-hash, <code>-k</code> for Kerberos, <code>--pfx-cert</code> for certificate auth, and <code>-C creds.txt</code> for multi-credential mode with share access matrix.
-        </p>
-        <p>
-          Target type is <strong style="color:var(--ctp-text);">auto-detected</strong> -- IPs, hostnames, CIDR notation, IP ranges, and target files all work without flags.
-        </p>
-      </div>
-    </div>
-  </section>
+    <!-- ======== ARCHITECTURE ======== -->
+    <section style="background: var(--mantle);">
+        <div class="container">
+            <h2>Architecture</h2>
+            <p class="section-desc">Seven-phase execution pipeline. Pre-scan, validate, cache, enumerate in parallel, then generate reports with next steps.</p>
 
-  <!-- ============ FOOTER ============ -->
-  <footer class="site-footer">
-    <p class="footer-tagline">Built for reconnaissance. Powered by NetExec.</p>
-    <nav class="footer-links" aria-label="Footer links">
-      <a href="https://github.com/Real-Fruit-Snacks/maelstrom">GitHub</a>
-      <a href="https://github.com/Real-Fruit-Snacks/maelstrom/blob/main/LICENSE">License (MIT)</a>
-      <a href="https://github.com/Real-Fruit-Snacks/maelstrom/issues">Report Issue</a>
-    </nav>
-    <p class="footer-copy">Maelstrom -- comprehensive AD enumeration in a single command</p>
-  </footer>
+            <div class="arch-grid">
+                <div class="arch-card">
+                    <div class="arch-num">1</div>
+                    <h3>Pre-scan &amp; Validation</h3>
+                    <p>Port 445 TCP scan filters live hosts from CIDR ranges. SMB reachability and hostname resolution verify each target before enumeration begins.</p>
+                </div>
+                <div class="arch-card">
+                    <div class="arch-num">2</div>
+                    <h3>Auth &amp; Cache Prime</h3>
+                    <p>Anonymous probing tests null/guest/LDAP sessions. Credential validation then cache priming with 7 parallel queries: SMB, RID brute, LDAP, pass policy.</p>
+                </div>
+                <div class="arch-card">
+                    <div class="arch-num">3</div>
+                    <h3>Parallel Enumeration</h3>
+                    <p>Sequential domain intel pass followed by 36 independent modules via <code>ThreadPoolExecutor</code> with 15 workers. Proxy mode reduces to 2 workers.</p>
+                </div>
+                <div class="arch-card">
+                    <div class="arch-num">4</div>
+                    <h3>Reporting</h3>
+                    <p>Executive summary, actionable next steps with auto-filled credentials, share access matrix for multi-cred mode, and copy-paste lists for tool chaining.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-</div>
+    <!-- ======== GETTING STARTED ======== -->
+    <section>
+        <div class="container">
+            <h2>Getting Started</h2>
+            <p class="section-desc">Install with pipx, point at a target, and let Maelstrom handle the rest. No configuration needed.</p>
+
+            <div class="two-col">
+                <div class="terminal">
+                    <div class="terminal-bar">
+                        <span class="terminal-dot"></span>
+                        <span class="terminal-dot"></span>
+                        <span class="terminal-dot"></span>
+                        <span class="terminal-label">install.sh</span>
+                    </div>
+                    <div class="terminal-body">
+                        <pre><span class="c"># Install globally with pipx</span>
+<span class="p">$</span> pipx install git+https://github.com/Real-Fruit-Snacks/Maelstrom.git
+
+<span class="c"># Full enumeration with credentials</span>
+<span class="p">$</span> maelstrom 10.0.0.1 <span class="f">-u</span> admin <span class="f">-p</span> 'Password123' <span class="f">-d</span> CORP
+
+<span class="c"># Anonymous enumeration</span>
+<span class="p">$</span> maelstrom 10.0.0.1
+
+<span class="c"># Pass-the-hash</span>
+<span class="p">$</span> maelstrom 10.0.0.1 <span class="f">-u</span> admin <span class="f">-H</span> aad3b435:31d6cfe0</pre>
+                    </div>
+                </div>
+
+                <div class="terminal">
+                    <div class="terminal-bar">
+                        <span class="terminal-dot"></span>
+                        <span class="terminal-dot"></span>
+                        <span class="terminal-dot"></span>
+                        <span class="terminal-label">advanced.sh</span>
+                    </div>
+                    <div class="terminal-body">
+                        <pre><span class="c"># Multi-target CIDR scan</span>
+<span class="p">$</span> maelstrom 10.0.0.0/24 <span class="f">-u</span> admin <span class="f">-p</span> pass
+
+<span class="c"># Multi-credential comparison</span>
+<span class="p">$</span> maelstrom 10.0.0.1 <span class="f">-C</span> creds.txt <span class="f">-d</span> CORP
+
+<span class="c"># Specific modules only</span>
+<span class="p">$</span> maelstrom 10.0.0.1 <span class="f">-u</span> admin <span class="f">-p</span> pass <span class="f">--shares --laps --adcs</span>
+
+<span class="c"># Discover live SMB hosts</span>
+<span class="p">$</span> maelstrom 10.0.0.0/24 <span class="f">--discover-only</span></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======== DETECTION AWARENESS ======== -->
+    <section style="background: var(--mantle);">
+        <div class="container">
+            <h2>Detection Awareness</h2>
+            <p class="section-desc">Maelstrom uses standard enumeration protocols. Understand what generates alerts and what blends in.</p>
+
+            <div class="detection-grid">
+                <div class="detection-card safe">
+                    <h3>Low Visibility</h3>
+                    <ul>
+                        <li>LDAP queries (standard directory lookups)</li>
+                        <li>SMB share enumeration (normal file server access)</li>
+                        <li>DNS enumeration recommendations (passive only)</li>
+                        <li>Anonymous/guest session probing</li>
+                        <li>RPC enumeration (standard Windows calls)</li>
+                    </ul>
+                </div>
+                <div class="detection-card visible">
+                    <h3>May Generate Alerts</h3>
+                    <ul>
+                        <li>Port 445 pre-scan across CIDR ranges</li>
+                        <li>RID brute-force enumeration</li>
+                        <li>Multiple protocol connections in rapid succession</li>
+                        <li>Multi-credential testing (potential spray detection)</li>
+                        <li>Large-scale share spider operations</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======== FOOTER ======== -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <h4>Documentation</h4>
+                    <ul>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#quick-start">Quick Start</a></li>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#modules">Modules</a></li>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#configuration">Configuration</a></li>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#architecture">Architecture</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/issues">Report Issue</a></li>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/blob/main/CONTRIBUTING.md">Contributing</a></li>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/blob/main/CHANGELOG.md">Changelog</a></li>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/blob/main/SECURITY.md">Security</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Toolkit</h4>
+                    <ul>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Flux">Flux</a></li>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Deluge">Deluge</a></li>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Riptide">Riptide</a></li>
+                        <li><a href="https://github.com/Real-Fruit-Snacks/Aquifer">Aquifer</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>License</h4>
+                    <p>MIT License. Free for authorized security testing, research, and educational purposes. Use responsibly.</p>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                Part of the Real-Fruit-Snacks water-themed security toolkit
+            </div>
+        </div>
+    </footer>
 
 </body>
 </html>
