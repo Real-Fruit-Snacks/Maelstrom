@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" fill="none">
   <defs>
-    <!-- Primary gradient: teal to green (Operations category) -->
+    <!-- Primary gradient: teal to green (3-stop, 40% mid) -->
     <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#94e2d5"/>
-      <stop offset="50%" stop-color="#a6e3a1"/>
+      <stop offset="40%" stop-color="#a6e3a1"/>
       <stop offset="100%" stop-color="#a6e3a1"/>
     </linearGradient>
 
@@ -13,49 +13,34 @@
       <stop offset="100%" stop-color="#94e2d5"/>
     </linearGradient>
 
-    <!-- Icon gradient: vertical for the center node -->
+    <!-- Icon gradient: vertical -->
     <linearGradient id="g3" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#94e2d5"/>
       <stop offset="50%" stop-color="#94e2d5"/>
       <stop offset="100%" stop-color="#a6e3a1"/>
     </linearGradient>
 
-    <!-- Spiral gradient: teal fading to green along the path -->
-    <linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#94e2d5" stop-opacity="0.3"/>
-      <stop offset="50%" stop-color="#94e2d5" stop-opacity="0.6"/>
-      <stop offset="100%" stop-color="#a6e3a1" stop-opacity="0.9"/>
-    </linearGradient>
-
-    <!-- Subtle glow for the logomark -->
+    <!-- Softglow filter -->
     <filter id="softglow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
       <feFlood flood-color="#94e2d5" flood-opacity="0.15" result="color"/>
       <feComposite in="color" in2="blur" operator="in" result="shadow"/>
       <feComposite in="SourceGraphic" in2="shadow" operator="over"/>
     </filter>
-
-    <!-- Center node glow -->
-    <filter id="nodeglow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
   </defs>
 
   <!-- ===================== LOGOMARK: The Vortex ===================== -->
   <g transform="translate(58, 40)" filter="url(#softglow)">
 
-    <!-- Hexagonal frame — thin, elegant -->
+    <!-- Hexagonal frame -->
     <path d="M 80 6 L 140 38 L 140 102 L 80 134 L 20 102 L 20 38 Z"
           fill="none" stroke="url(#g1)" stroke-width="1.5" opacity="0.4"/>
 
-    <!-- Inner hex subtle fill -->
+    <!-- Inner hex fill -->
     <path d="M 80 14 L 134 42 L 134 98 L 80 126 L 26 98 L 26 42 Z"
-          fill="#94e2d5" opacity="0.03"/>
+          fill="#94e2d5" opacity="0.04"/>
 
-    <!-- === Spiral vortex — clockwise inward, 3.5 turns === -->
-
-    <!-- Outermost spiral arm (widest, most transparent) -->
+    <!-- Outermost spiral arm -->
     <path d="M 130 40 C 138 60, 130 90, 110 105 C 90 118, 60 115, 42 98 C 26 80, 30 52, 50 38 C 66 28, 90 30, 102 42"
           stroke="#94e2d5" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.35"/>
 
@@ -63,22 +48,20 @@
     <path d="M 102 42 C 115 55, 112 78, 100 92 C 88 104, 64 105, 50 92 C 38 78, 42 58, 56 48 C 66 42, 82 42, 92 52"
           stroke="#94e2d5" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.5"/>
 
-    <!-- Third spiral arm (tighter) -->
+    <!-- Third spiral arm -->
     <path d="M 92 52 C 102 60, 100 76, 92 84 C 84 92, 68 92, 60 84 C 52 76, 54 62, 64 56 C 70 52, 78 52, 84 58"
           stroke="url(#g2)" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.7"/>
 
-    <!-- Innermost spiral arm (tightest, brightest) -->
+    <!-- Innermost spiral arm -->
     <path d="M 84 58 C 90 62, 90 72, 86 76 C 82 80, 74 80, 72 76 C 70 72, 72 66, 76 64 L 80 65"
           stroke="#a6e3a1" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.85"/>
 
-    <!-- === Center collection point === -->
-    <circle cx="80" cy="65" r="5" fill="#94e2d5" opacity="0.95" filter="url(#nodeglow)"/>
+    <!-- Center collection point -->
+    <circle cx="80" cy="65" r="5" fill="url(#g3)" opacity="0.95"/>
     <circle cx="80" cy="65" r="2.5" fill="#1e1e2e"/>
     <circle cx="80" cy="65" r="8" fill="none" stroke="#94e2d5" stroke-width="0.5" opacity="0.3"/>
 
-    <!-- === Data dots being pulled along the spiral path === -->
-
-    <!-- Outer dots (larger, more transparent — just entering the vortex) -->
+    <!-- Outer data dots -->
     <circle cx="130" cy="42" r="2" fill="#94e2d5" opacity="0.4"/>
     <circle cx="118" cy="32" r="1.8" fill="#94e2d5" opacity="0.35"/>
     <circle cx="112" cy="105" r="2" fill="#94e2d5" opacity="0.35"/>
@@ -86,7 +69,7 @@
     <circle cx="32" cy="62" r="1.8" fill="#94e2d5" opacity="0.3"/>
     <circle cx="48" cy="36" r="2" fill="#94e2d5" opacity="0.35"/>
 
-    <!-- Mid-spiral dots (medium size, moderate opacity) -->
+    <!-- Mid-spiral dots -->
     <circle cx="106" cy="48" r="1.7" fill="#94e2d5" opacity="0.45"/>
     <circle cx="108" cy="86" r="1.5" fill="#94e2d5" opacity="0.4"/>
     <circle cx="56" cy="100" r="1.5" fill="#94e2d5" opacity="0.4"/>
@@ -94,44 +77,40 @@
     <circle cx="56" cy="44" r="1.7" fill="#94e2d5" opacity="0.45"/>
     <circle cx="96" cy="44" r="1.5" fill="#a6e3a1" opacity="0.45"/>
 
-    <!-- Inner dots (smaller, brighter — approaching center) -->
+    <!-- Inner dots -->
     <circle cx="96" cy="60" r="1.5" fill="#a6e3a1" opacity="0.55"/>
     <circle cx="96" cy="80" r="1.3" fill="#a6e3a1" opacity="0.5"/>
     <circle cx="66" cy="90" r="1.3" fill="#94e2d5" opacity="0.5"/>
     <circle cx="56" cy="68" r="1.3" fill="#94e2d5" opacity="0.5"/>
     <circle cx="66" cy="52" r="1.5" fill="#a6e3a1" opacity="0.55"/>
 
-    <!-- Closest to center (smallest, brightest) -->
+    <!-- Closest to center -->
     <circle cx="88" cy="64" r="1.2" fill="#a6e3a1" opacity="0.7"/>
     <circle cx="86" cy="74" r="1.2" fill="#a6e3a1" opacity="0.65"/>
     <circle cx="74" cy="76" r="1.2" fill="#a6e3a1" opacity="0.6"/>
     <circle cx="72" cy="60" r="1.2" fill="#a6e3a1" opacity="0.65"/>
 
-    <!-- Corner accents on hex -->
+    <!-- Corner accents -->
     <circle cx="80" cy="6" r="2" fill="#94e2d5" opacity="0.3"/>
     <circle cx="80" cy="134" r="2" fill="#a6e3a1" opacity="0.3"/>
   </g>
 
   <!-- ===================== TYPOGRAPHY ===================== -->
 
-  <!-- "MAELSTROM" — clean, bold, wide-tracked -->
-  <text x="430" y="108"
+  <text x="415" y="108"
         font-family="'SF Pro Display', 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
         font-size="58" font-weight="800" letter-spacing="18"
         fill="url(#g1)" text-anchor="middle">MAELSTROM</text>
 
-  <!-- Thin separator line -->
-  <line x1="270" y1="128" x2="590" y2="128"
+  <line x1="280" y1="128" x2="550" y2="128"
         stroke="url(#g1)" stroke-width="0.8" opacity="0.25"/>
 
-  <!-- Tagline — refined, subtle -->
-  <text x="430" y="152"
+  <text x="415" y="152"
         font-family="'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace"
         font-size="11.5" font-weight="400" letter-spacing="5.5"
         fill="#7f849c" text-anchor="middle">NETEXEC AD ENUMERATION</text>
 
-  <!-- Descriptor — very subtle -->
-  <text x="430" y="172"
+  <text x="415" y="172"
         font-family="'SF Mono', 'JetBrains Mono', 'Fira Code', monospace"
         font-size="9" font-weight="400" letter-spacing="3"
         fill="#585b70" text-anchor="middle">PYTHON  ·  35+ MODULES  ·  MULTI-TARGET</text>
