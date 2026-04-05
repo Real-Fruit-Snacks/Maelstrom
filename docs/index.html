@@ -3,844 +3,345 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maelstrom — NetExec AD Enumeration Engine</title>
-    <meta name="description" content="NetExec wrapper combining 35+ AD enumeration modules into a single command with colored output, multi-target scanning, and actionable recommendations.">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8C%80%3C/text%3E%3C/svg%3E">
+    <title>Maelstrom — Active Directory Enumeration, Unified</title>
+    <meta name="description" content="NetExec wrapper combining 35+ enumeration modules. Multi-target, multi-credential, one command.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext x='16' y='24' text-anchor='middle' font-family='Inter,sans-serif' font-size='24' font-weight='800' fill='%2394e2d5'%3EM%3C/text%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --red: #f38ba8;
-            --maroon: #eba0ac;
-            --pink: #f5c2e7;
-            --mauve: #cba6f7;
-            --lavender: #b4befe;
-            --blue: #89b4fa;
-            --sapphire: #74c7ec;
-            --sky: #89dceb;
-            --teal: #94e2d5;
-            --green: #a6e3a1;
-            --yellow: #f9e2af;
-            --peach: #fab387;
-            --text: #cdd6f4;
-            --subtext1: #bac2de;
-            --subtext0: #a6adc8;
-            --overlay2: #9399b2;
-            --overlay1: #7f849c;
-            --overlay0: #6c7086;
-            --surface2: #585b70;
-            --surface1: #45475a;
-            --surface0: #313244;
-            --base: #1e1e2e;
-            --mantle: #181825;
-            --crust: #11111b;
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --accent1:#94e2d5;--accent2:#a6e3a1;--accentmid:#89dceb;
+            --accentrgb:148,226,213;
+            --text:#cdd6f4;--sub1:#bac2de;--sub0:#a6adc8;
+            --ov2:#9399b2;--ov1:#7f849c;--ov0:#6c7086;
+            --sf2:#585b70;--sf1:#45475a;--sf0:#313244;
+            --base:#1e1e2e;--mantle:#181825;--crust:#11111b;
+            --green:#a6e3a1;--yellow:#f9e2af;--red:#f38ba8;
+            --peach:#fab387;--mauve:#cba6f7;--teal:#94e2d5;
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--base);
-            color: var(--text);
-            line-height: 1.7;
-            overflow-x: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image: radial-gradient(circle, var(--overlay0) 1px, transparent 1px);
-            background-size: 24px 24px;
-            opacity: 0.15;
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        body::after {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px);
-            pointer-events: none;
-            z-index: 999;
-            opacity: 0.4;
-        }
-
-        ::selection { background: rgba(148, 226, 213, 0.3); color: var(--text); }
-
-        code {
-            font-family: 'JetBrains Mono', monospace;
-            background: var(--mantle);
-            padding: 2px 7px;
-            border-radius: 3px;
-            font-size: 0.88em;
-            color: var(--green);
-        }
-
-        .container { max-width: 1140px; margin: 0 auto; padding: 0 28px; }
-
-        /* -- Hero -- */
-        .hero {
-            padding: 100px 0 70px;
-            text-align: center;
-            position: relative;
-        }
-
-        .hero::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 10%;
-            right: 10%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--surface1), transparent);
-        }
-
-        .hero-logo {
-            max-width: 440px;
-            margin: 0 auto 32px;
-        }
-
-        .hero-logo img { width: 100%; height: auto; }
-
-        .hero .subtitle {
-            font-size: clamp(15px, 2vw, 18px);
-            color: var(--subtext0);
-            max-width: 680px;
-            margin: 0 auto 28px;
-            line-height: 1.7;
-        }
-
-        .hero .warning {
-            background: rgba(243, 139, 168, 0.07);
-            border: 1px solid rgba(243, 139, 168, 0.3);
-            border-radius: 6px;
-            padding: 14px 24px;
-            margin: 28px auto;
-            max-width: 720px;
-            font-size: 13px;
-            line-height: 1.6;
-            color: var(--subtext1);
-        }
-
-        .hero .warning strong { color: var(--red); }
-
-        /* -- Stats -- */
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 16px;
-            margin: 48px 0;
-        }
-
-        .stat {
-            background: var(--surface0);
-            border: 1px solid var(--surface1);
-            border-radius: 8px;
-            padding: 20px 16px;
-            text-align: center;
-            transition: transform 0.2s, border-color 0.2s;
-        }
-
-        .stat:hover { transform: translateY(-2px); border-color: var(--surface2); }
-
-        .stat-value {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--teal);
-            line-height: 1;
-        }
-
-        .stat-label { font-size: 12px; color: var(--overlay1); margin-top: 6px; letter-spacing: 0.03em; }
-
-        /* -- CTAs -- */
-        .cta-group { display: flex; gap: 14px; justify-content: center; margin-top: 36px; }
-
-        .btn {
-            padding: 13px 32px;
-            border-radius: 6px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            letter-spacing: 0.03em;
-            transition: all 0.2s;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--teal), var(--green));
-            color: var(--crust);
-        }
-
-        .btn-primary:hover {
-            box-shadow: 0 0 24px rgba(148, 226, 213, 0.35);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: var(--surface0);
-            color: var(--text);
-            border: 1px solid var(--surface1);
-        }
-
-        .btn-secondary:hover { background: var(--surface1); border-color: var(--surface2); }
-
-        .btn-ghost {
-            background: transparent;
-            color: var(--subtext1);
-            border: 1px solid var(--surface1);
-        }
-
-        .btn-ghost:hover { background: var(--surface0); color: var(--text); }
-
-        /* -- Sections -- */
-        section { padding: 72px 0; }
-
-        section h2 {
-            font-size: clamp(28px, 4vw, 42px);
-            font-weight: 700;
-            margin-bottom: 12px;
-            color: var(--text);
-            letter-spacing: -0.02em;
-        }
-
-        section .section-desc {
-            font-size: 15px;
-            color: var(--subtext0);
-            margin-bottom: 44px;
-            max-width: 640px;
-            line-height: 1.7;
-        }
-
-        /* -- Feature Grid -- */
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-        }
-
-        .feature {
-            background: var(--surface0);
-            border: 1px solid var(--surface1);
-            border-radius: 8px;
-            padding: 28px;
-            transition: all 0.25s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--teal), var(--green));
-            opacity: 0;
-            transition: opacity 0.25s;
-        }
-
-        .feature:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-            border-color: var(--surface2);
-        }
-
-        .feature:hover::before { opacity: 1; }
-
-        .feature h3 {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--teal);
-            margin-bottom: 10px;
-            letter-spacing: 0.02em;
-        }
-
-        .feature p { font-size: 13.5px; color: var(--subtext1); line-height: 1.65; }
-
-        /* -- Mode Cards -- */
-        .modes-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-
-        .mode-card {
-            background: var(--surface0);
-            border: 1px solid var(--surface1);
-            border-radius: 8px;
-            padding: 28px;
-            transition: all 0.25s;
-        }
-
-        .mode-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--surface2);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-        }
-
-        .mode-card h3 {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--teal);
-            margin-bottom: 8px;
-        }
-
-        .mode-card p { font-size: 13px; color: var(--subtext1); line-height: 1.6; margin-bottom: 14px; }
-
-        .mode-card .mode-cmd {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            color: var(--green);
-            background: var(--mantle);
-            padding: 8px 12px;
-            border-radius: 4px;
-            display: block;
-            overflow-x: auto;
-        }
-
-        /* -- Capabilities -- */
-        .capabilities {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
-            gap: 10px;
-        }
-
-        .capability {
-            background: var(--surface0);
-            border: 1px solid var(--surface1);
-            border-radius: 20px;
-            padding: 9px 18px;
-            font-size: 12.5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .capability:hover { border-color: var(--surface2); background: var(--surface1); }
-
-        .cap-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-        .cap-dot.full { background: var(--green); }
-        .cap-dot.partial { background: var(--yellow); }
-        .cap-dot.none { background: var(--surface2); }
-
-        /* -- Terminal -- */
-        .terminal {
-            background: var(--mantle);
-            border: 1px solid var(--surface1);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-        }
-
-        .terminal-bar {
-            background: var(--crust);
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-bottom: 1px solid var(--surface0);
-        }
-
-        .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
-        .terminal-dot:nth-child(1) { background: var(--red); }
-        .terminal-dot:nth-child(2) { background: var(--yellow); }
-        .terminal-dot:nth-child(3) { background: var(--green); }
-        .terminal-label { flex: 1; text-align: center; font-size: 11px; color: var(--overlay0); font-family: 'JetBrains Mono', monospace; }
-
-        .terminal-body {
-            padding: 24px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-            line-height: 1.8;
-        }
-
-        .terminal-body pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
-        .terminal-body .p { color: var(--green); }
-        .terminal-body .c { color: var(--overlay0); }
-        .terminal-body .v { color: var(--sapphire); }
-        .terminal-body .f { color: var(--peach); }
-
-        /* -- Architecture -- */
-        .arch-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-
-        .arch-card {
-            background: var(--surface0);
-            border: 1px solid var(--surface1);
-            border-radius: 8px;
-            padding: 28px;
-            transition: border-color 0.2s;
-        }
-
-        .arch-card:hover { border-color: var(--surface2); }
-
-        .arch-num {
-            display: inline-flex;
-            width: 30px; height: 30px;
-            background: linear-gradient(135deg, var(--teal), var(--green));
-            color: var(--crust);
-            border-radius: 50%;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 14px;
-            margin-bottom: 14px;
-        }
-
-        .arch-card h3 {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--teal);
-            margin-bottom: 10px;
-        }
-
-        .arch-card p { font-size: 13.5px; color: var(--subtext1); line-height: 1.6; }
-
-        /* -- Two Column -- */
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
-
-        /* -- Detection Awareness -- */
-        .detection-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .detection-card {
-            background: var(--surface0);
-            border: 1px solid var(--surface1);
-            border-radius: 8px;
-            padding: 28px;
-        }
-
-        .detection-card h3 {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
-
-        .detection-card.safe h3 { color: var(--green); }
-        .detection-card.visible h3 { color: var(--yellow); }
-
-        .detection-card ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .detection-card li {
-            font-size: 13px;
-            color: var(--subtext1);
-            padding: 6px 0;
-            border-bottom: 1px solid var(--surface1);
-            line-height: 1.5;
-        }
-
-        .detection-card li:last-child { border-bottom: none; }
-
-        /* -- Footer -- */
-        footer {
-            border-top: 1px solid var(--surface1);
-            padding: 48px 0;
-            margin-top: 80px;
-        }
-
-        .footer-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 32px;
-        }
-
-        .footer-grid h4 {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            color: var(--text);
-            margin-bottom: 14px;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-        }
-
-        .footer-grid ul { list-style: none; }
-        .footer-grid li { margin-bottom: 8px; }
-        .footer-grid a { color: var(--overlay2); text-decoration: none; font-size: 13px; transition: color 0.2s; }
-        .footer-grid a:hover { color: var(--teal); }
-
-        .footer-grid p { font-size: 13px; color: var(--overlay1); line-height: 1.7; }
-
-        .footer-bottom {
-            text-align: center;
-            margin-top: 36px;
-            padding-top: 24px;
-            border-top: 1px solid var(--surface0);
-            font-size: 12px;
-            color: var(--overlay0);
-            letter-spacing: 0.02em;
-        }
-
-        /* -- Responsive -- */
-        @media (max-width: 960px) {
-            .stats { grid-template-columns: repeat(3, 1fr); }
-            .modes-grid, .two-col, .arch-grid, .detection-grid { grid-template-columns: 1fr; }
-            .footer-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 600px) {
-            .container { padding: 0 16px; }
-            .hero { padding: 60px 0 48px; }
-            section { padding: 48px 0; }
-            .stats { grid-template-columns: repeat(2, 1fr); }
-            .cta-group { flex-direction: column; align-items: center; }
-            .btn { width: 100%; max-width: 280px; text-align: center; }
-            .features { grid-template-columns: 1fr; }
-            .footer-grid { grid-template-columns: 1fr; }
-        }
-
-        a:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+        body{font-family:'Inter',system-ui,sans-serif;background:var(--crust);color:var(--text);line-height:1.7;overflow-x:hidden}
+        ::selection{background:rgba(var(--accentrgb),0.3);color:var(--text)}
+        .container{max-width:1140px;margin:0 auto;padding:0 28px}
+        code{font-family:'JetBrains Mono',monospace;background:var(--mantle);padding:2px 7px;border-radius:3px;font-size:.88em;color:var(--green)}
+        .nav{position:fixed;top:0;left:0;right:0;height:56px;background:rgba(17,17,27,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(49,50,68,0.5);z-index:1000;display:flex;align-items:center;justify-content:center}
+        .nav-inner{max-width:1140px;width:100%;padding:0 28px;display:flex;align-items:center;justify-content:space-between}
+        .nav-logo{font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--text);text-decoration:none}
+        .nav-links{display:flex;align-items:center;gap:28px}
+        .nav-links a{font-size:13px;font-weight:500;color:var(--ov0);text-decoration:none;transition:color .2s}
+        .nav-links a:hover{color:var(--text)}
+        .nav-cta{background:linear-gradient(135deg,var(--accent1),var(--accentmid));color:var(--crust);padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:box-shadow .2s,transform .2s}
+        .nav-cta:hover{box-shadow:0 0 20px rgba(var(--accentrgb),0.3);transform:translateY(-1px)}
+        .hero{padding:140px 0 80px;text-align:center;position:relative}
+        .hero::before{content:'';position:absolute;top:60px;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(ellipse,rgba(var(--accentrgb),0.08) 0%,transparent 60%);pointer-events:none}
+        .hero-logo{position:relative;max-width:600px;margin:0 auto 32px}
+        .hero-logo img{width:100%;height:auto}
+        .hero-tagline{position:relative;font-size:clamp(24px,3.5vw,38px);font-weight:700;line-height:1.2;margin-bottom:16px;background:linear-gradient(135deg,var(--accent1),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .hero-desc{position:relative;font-size:16px;color:var(--ov0);max-width:560px;margin:0 auto 32px}
+        .hero-ctas{position:relative;display:flex;gap:12px;justify-content:center;margin-bottom:48px}
+        .btn-primary{background:linear-gradient(135deg,var(--accent1),var(--accentmid));color:var(--crust);padding:12px 28px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;text-decoration:none;transition:box-shadow .2s,transform .2s}
+        .btn-primary:hover{box-shadow:0 0 24px rgba(var(--accentrgb),0.35);transform:translateY(-2px)}
+        .btn-secondary{background:var(--sf0);color:var(--text);padding:12px 28px;border-radius:8px;border:1px solid var(--sf1);font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;text-decoration:none;transition:all .2s}
+        .btn-secondary:hover{background:var(--sf1);border-color:var(--sf2)}
+        .terminal{position:relative;max-width:800px;margin:0 auto;background:var(--mantle);border:1px solid var(--sf0);border-radius:12px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.5),0 0 24px rgba(var(--accentrgb),0.06)}
+        .terminal-bar{background:var(--crust);padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--sf0)}
+        .terminal-dot{width:12px;height:12px;border-radius:50%}
+        .terminal-dot:nth-child(1){background:var(--red)}
+        .terminal-dot:nth-child(2){background:var(--yellow)}
+        .terminal-dot:nth-child(3){background:var(--green)}
+        .terminal-label{flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ov0)}
+        .terminal-body{padding:24px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.9;text-align:left}
+        .terminal-body pre{margin:0;white-space:pre-wrap;word-wrap:break-word}
+        .t-g{color:var(--green)}.t-b{color:var(--accent1)}.t-m{color:var(--sub0)}.t-p{color:var(--peach)}
+        .stats{display:flex;justify-content:center;gap:40px;padding:60px 0;position:relative}
+        .stat{text-align:center}
+        .stat-num{font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:700;color:var(--accent1);line-height:1}
+        .stat-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--sf2);margin-top:6px;letter-spacing:2px;text-transform:uppercase}
+        .stat-div{width:1px;height:48px;background:var(--sf0);align-self:center}
+        section{padding:80px 0}
+        .section-label{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--accent1);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+        .section-title{font-size:clamp(28px,4vw,40px);font-weight:700;margin-bottom:12px;letter-spacing:-.02em}
+        .section-desc{font-size:15px;color:var(--ov0);margin-bottom:48px;max-width:560px}
+        .gradient-line{height:1px;background:linear-gradient(90deg,transparent,var(--accent1),var(--accent2),transparent);margin:0 auto;max-width:600px}
+        .bento{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+        .bento-card{background:var(--mantle);border:1px solid var(--sf0);border-radius:12px;padding:28px;transition:all .25s;position:relative;overflow:hidden}
+        .bento-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent1),var(--accent2));opacity:0;transition:opacity .25s}
+        .bento-card:hover{transform:translateY(-3px);border-color:var(--sf1);box-shadow:0 12px 32px rgba(0,0,0,0.25),0 0 20px rgba(var(--accentrgb),0.06)}
+        .bento-card:hover::before{opacity:1}
+        .bento-hero{grid-column:span 2}
+        .bento-card h3{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:var(--accent1);margin-bottom:8px}
+        .bento-card p{font-size:13.5px;color:var(--sub0);line-height:1.6}
+        .bento-card .mini-terminal{background:var(--crust);border-radius:8px;padding:14px;margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;text-align:left}
+        .bento-stat{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+        .bento-stat .big{font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:700;color:var(--accent1)}
+        .bento-stat .label{font-size:12px;color:var(--sf2);margin-top:4px;letter-spacing:1px}
+        .pills{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+        .pill{background:var(--mantle);border:1px solid var(--sf0);border-radius:20px;padding:9px 18px;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;gap:8px;transition:all .2s;color:var(--sub0)}
+        .pill:hover{border-color:var(--sf1);background:var(--base)}
+        .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+        .dot-g{background:var(--green)}.dot-y{background:var(--yellow)}.dot-n{background:var(--sf2)}
+        .arch-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+        .arch-card{background:var(--mantle);border:1px solid var(--sf0);border-radius:12px;padding:28px;transition:border-color .2s}
+        .arch-card:hover{border-color:var(--sf1)}
+        .arch-num{display:inline-flex;width:30px;height:30px;background:linear-gradient(135deg,var(--accent1),var(--accentmid));color:var(--crust);border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin-bottom:14px}
+        .arch-card h3{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:var(--teal);margin-bottom:8px}
+        .arch-card p{font-size:13.5px;color:var(--sub0);line-height:1.6}
+        .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+        .detect-card{background:var(--mantle);border-radius:12px;padding:28px}
+        .detect-card h3{font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+        .detect-card ul{list-style:none;font-size:13px;color:var(--sub0);line-height:2.2}
+        .detect-hidden{border-left:3px solid var(--green)}.detect-hidden h3{color:var(--green)}
+        .detect-visible{border-left:3px solid var(--yellow)}.detect-visible h3{color:var(--yellow)}
+        footer{padding:48px 0;margin-top:40px}
+        .footer-line{height:1px;background:linear-gradient(90deg,transparent,var(--accent1),var(--accent2),transparent);margin-bottom:48px}
+        .footer-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:32px}
+        .footer-grid h4{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);margin-bottom:14px;letter-spacing:2px;text-transform:uppercase}
+        .footer-grid ul{list-style:none}
+        .footer-grid li{margin-bottom:8px}
+        .footer-grid a{color:var(--ov2);text-decoration:none;font-size:13px;transition:color .2s}
+        .footer-grid a:hover{color:var(--accent1)}
+        .footer-grid p{font-size:13px;color:var(--ov1);line-height:1.7}
+        .footer-bottom{text-align:center;margin-top:36px;padding-top:24px;border-top:1px solid var(--sf0);font-size:12px;color:var(--ov0)}
+        .animate{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+        .animate.visible{opacity:1;transform:translateY(0)}
+        .animate-scale{opacity:0;transform:translateY(24px) scale(.97);transition:opacity .8s ease,transform .8s ease}
+        .animate-scale.visible{opacity:1;transform:translateY(0) scale(1)}
+        @media(max-width:960px){.bento{grid-template-columns:1fr 1fr}.bento-hero{grid-column:span 2}.two-col,.arch-grid{grid-template-columns:1fr}.footer-grid{grid-template-columns:repeat(2,1fr)}.stats{flex-wrap:wrap;gap:24px}}
+        @media(max-width:600px){.container{padding:0 16px}.hero{padding:100px 0 48px}.bento{grid-template-columns:1fr}.bento-hero{grid-column:span 1}.stats{gap:16px}.stat-div{display:none}.nav-links a:not(.nav-cta){display:none}.footer-grid{grid-template-columns:1fr}.pills{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
+        a:focus-visible{outline:2px solid var(--accent1);outline-offset:2px}
     </style>
 </head>
 <body>
-
-    <!-- ======== HERO ======== -->
+    <!-- Nav -->
+    <nav class="nav"><div class="nav-inner">
+        <a href="#" class="nav-logo">Maelstrom</a>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#architecture">Architecture</a>
+            <a href="https://github.com/Real-Fruit-Snacks/Maelstrom">GitHub</a>
+            <a href="https://github.com/Real-Fruit-Snacks/Maelstrom/releases/latest" class="nav-cta">Download</a>
+        </div>
+    </div></nav>
+    <!-- Hero -->
     <section class="hero">
         <div class="container">
-            <div class="hero-logo">
-                <img src="https://raw.githubusercontent.com/Real-Fruit-Snacks/Maelstrom/main/docs/assets/logo-dark.svg" alt="Maelstrom">
+            <div class="hero-logo animate"><img src="https://raw.githubusercontent.com/Real-Fruit-Snacks/Maelstrom/main/docs/assets/logo-dark.svg" alt="Maelstrom"></div>
+            <h1 class="hero-tagline animate" style="transition-delay:.1s">Active Directory enumeration, unified</h1>
+            <p class="hero-desc animate" style="transition-delay:.2s">NetExec wrapper combining 35+ enumeration modules. Multi-target, multi-credential, one command. Actionable next-step recommendations with auto-filled credentials.</p>
+            <div class="hero-ctas animate" style="transition-delay:.3s">
+                <a href="https://github.com/Real-Fruit-Snacks/Maelstrom/releases/latest" class="btn-primary">Download Latest</a>
+                <a href="https://github.com/Real-Fruit-Snacks/Maelstrom" class="btn-secondary">View Source</a>
             </div>
+            <div class="terminal animate-scale" style="transition-delay:.4s">
+                <div class="terminal-bar">
+                    <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
+                    <span class="terminal-label">maelstrom</span>
+                </div>
+                <div class="terminal-body"><pre><span class="t-g">$</span> maelstrom 10.0.0.1 -u admin -p Password123 -d CORP -A
+<span class="t-b">[*] Running 35+ enumeration modules...</span>
+<span class="t-p">[SMB]</span> <span class="t-m">Shares: ADMIN$, C$, NETLOGON, SYSVOL, IT_Share</span>
+<span class="t-p">[LDAP]</span> <span class="t-m">Kerberoastable: svc_sql, svc_web, svc_backup</span>
+<span class="t-p">[LDAP]</span> <span class="t-m">ADCS: vuln template ESC1 found</span>
 
-            <p class="subtitle">
-                NetExec wrapper combining 35+ Active Directory enumeration modules into a single command.
-                Colored output, multi-target scanning, and actionable next-step recommendations.
-            </p>
-
-            <div class="warning">
-                <strong>Authorization Required:</strong> Designed for authorized security testing with explicit written permission. Unauthorized network enumeration is illegal.
-            </div>
-
-            <div class="stats">
-                <div class="stat">
-                    <div class="stat-value">35+</div>
-                    <div class="stat-label">Enum Modules</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value">7</div>
-                    <div class="stat-label">Protocols</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value">249</div>
-                    <div class="stat-label">Tests</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value">15</div>
-                    <div class="stat-label">Parallel Workers</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Dependencies</div>
-                </div>
-            </div>
-
-            <div class="cta-group">
-                <a href="https://github.com/Real-Fruit-Snacks/Maelstrom#quick-start" class="btn btn-primary">Get Started</a>
-                <a href="https://github.com/Real-Fruit-Snacks/Maelstrom" class="btn btn-secondary">View Source</a>
-                <a href="https://github.com/Real-Fruit-Snacks/Maelstrom#architecture" class="btn btn-ghost">Architecture</a>
+<span class="t-g">[NEXT]</span> <span class="t-b">impacket-GetUserSPNs CORP/admin:Password123 -dc-ip 10.0.0.1</span></pre></div>
             </div>
         </div>
     </section>
-
-    <!-- ======== MODES ======== -->
-    <section>
-        <div class="container">
-            <h2>Scan Modes</h2>
-            <p class="section-desc">Single target, CIDR ranges, or credential files. Maelstrom adapts its execution strategy to match your engagement scope.</p>
-
-            <div class="modes-grid">
-                <div class="mode-card">
-                    <h3>Single Target</h3>
-                    <p>Full enumeration against one host. Anonymous probing auto-tests null and guest sessions. Credential mode unlocks all 35+ modules with parallel execution.</p>
-                    <code class="mode-cmd">maelstrom 10.0.0.1 -u admin -p pass -d CORP</code>
-                </div>
-
-                <div class="mode-card">
-                    <h3>Multi-Target</h3>
-                    <p>CIDR ranges, IP ranges, and target files. Parallel host discovery with port 445 pre-scan. Per-target results with aggregate summary.</p>
-                    <code class="mode-cmd">maelstrom 10.0.0.0/24 -u admin -p pass</code>
-                </div>
-
-                <div class="mode-card">
-                    <h3>Multi-Credential</h3>
-                    <p>Test multiple credentials from a file. Visual share access matrix, admin detection, and per-user access comparison across all discovered shares.</p>
-                    <code class="mode-cmd">maelstrom 10.0.0.1 -C creds.txt -d CORP</code>
-                </div>
-            </div>
+    <!-- Stats -->
+    <div class="container">
+        <div class="stats animate">
+            <div class="stat"><div class="stat-num" data-target="35" data-suffix="+">0</div><div class="stat-label">Modules</div></div>
+            <div class="stat-div"></div>
+            <div class="stat"><div class="stat-num" data-target="7">0</div><div class="stat-label">Protocols</div></div>
+            <div class="stat-div"></div>
+            <div class="stat"><div class="stat-num" data-target="249">0</div><div class="stat-label">Tests</div></div>
+            <div class="stat-div"></div>
+            <div class="stat"><div class="stat-num" data-target="0">0</div><div class="stat-label">Dependencies</div></div>
         </div>
-    </section>
-
-    <!-- ======== FEATURES ======== -->
-    <section style="background: var(--mantle);">
+        <div class="gradient-line"></div>
+    </div>
+    <!-- Features Bento -->
+    <section id="features">
         <div class="container">
-            <h2>Features</h2>
-            <p class="section-desc">Reconnaissance-only enumeration powered by NetExec. Every module reads data without executing commands on targets.</p>
+            <div class="section-label animate">FEATURES</div>
+            <h2 class="section-title animate" style="transition-delay:.08s">One command, full enumeration</h2>
+            <p class="section-desc animate" style="transition-delay:.16s">35+ modules across 7 protocols. Multi-target CIDR scanning. Multi-credential comparison. Actionable next steps with auto-filled credentials.</p>
 
-            <div class="features">
-                <div class="feature">
-                    <h3>35+ Enum Modules</h3>
-                    <p>Users, groups, shares, LAPS, Kerberoastable, delegation, ADCS, gMSA, GPP, PSO, SCCM, and more. Run all with <code>-A</code> or select specific modules with individual flags.</p>
+            <div class="bento">
+                <div class="bento-card bento-hero animate" style="transition-delay:0.10s">
+                    <h3>35+ Enumeration Modules</h3>
+                    <p>Users, groups, shares, LAPS, Kerberoastable, delegation, ADCS, gMSA, GPP, PSO, SCCM, and more. Run all with <code>-A</code> or pick specific modules. Covers SMB, LDAP, MSSQL, RDP, FTP, NFS, and VNC.</p>
+                    <div class="mini-terminal"><span class="t-g">$</span> maelstrom 10.0.0.1 -u admin -p pass -A<br><span class="t-p">[SMB]</span> shares, sessions, signing<br><span class="t-p">[LDAP]</span> users, groups, kerberoast, delegation, ADCS<br><span class="t-p">[MSSQL]</span> service detection, auth test</div>
                 </div>
-                <div class="feature">
-                    <h3>Multi-Protocol</h3>
-                    <p>SMB, LDAP, MSSQL, RDP, FTP, NFS, and VNC enumeration in a single scan. Port availability is auto-detected before each module executes.</p>
+                <div class="bento-card bento-stat animate" style="transition-delay:0.18s">
+                    <div class="big">35+</div>
+                    <div class="label">Modules</div>
                 </div>
-                <div class="feature">
-                    <h3>Actionable Next Steps</h3>
-                    <p>Findings generate ready-to-run commands with credentials auto-filled. Priority-ranked with auto-exploit warnings for dangerous tools like secretsdump.</p>
+                <div class="bento-card animate" style="transition-delay:0.26s">
+                    <h3 style="color:var(--mauve)">Multi-Target Scanning</h3>
+                    <p>CIDR ranges, IP ranges, and target files. 100-thread port prescan discovers live SMB hosts in seconds. Per-target results with aggregate summary.</p>
                 </div>
-                <div class="feature">
-                    <h3>Parallel Execution</h3>
-                    <p>ThreadPoolExecutor with 15 workers for module-level parallelism, 5 workers for multi-target, and 100 for port pre-scanning. Proxy mode auto-reduces to 2.</p>
+                <div class="bento-card animate" style="transition-delay:0.34s">
+                    <h3 style="color:var(--green)">Multi-Credential Mode</h3>
+                    <p>Test multiple credentials with <code>-C creds.txt</code>. Visual share access matrix, admin detection, and access comparison across users.</p>
                 </div>
-                <div class="feature">
-                    <h3>Copy-Paste Output</h3>
-                    <p>Clean line-by-line lists of usernames, SPNs, shares, computers, and more. Pipe directly to other tools or save to files for later processing.</p>
+                <div class="bento-card animate" style="transition-delay:0.42s">
+                    <h3 style="color:var(--peach)">Actionable Next Steps</h3>
+                    <p>Findings generate ready-to-run commands with your credentials auto-filled. Priority-ranked with auto-exploit warnings for dangerous modules.</p>
                 </div>
-                <div class="feature">
-                    <h3>Credential Flexibility</h3>
-                    <p>Password, NTLM hash, Kerberos (ccache/AES), and certificate-based PKINIT auth. Anonymous mode auto-probes null and guest sessions.</p>
+                <div class="bento-card bento-stat animate" style="transition-delay:0.50s">
+                    <div class="big" style="color:var(--teal)">7</div>
+                    <div class="label">Protocols</div>
                 </div>
-                <div class="feature">
-                    <h3>Catppuccin Terminal UI</h3>
-                    <p>24-bit true color output with Catppuccin Mocha palette. enum4linux-ng style indicators: <code>[*]</code> info, <code>[+]</code> success, <code>[-]</code> error, <code>[!]</code> warning.</p>
+                <div class="bento-card bento-hero animate" style="transition-delay:0.58s">
+                    <h3 style="color:var(--red)">Proxy Mode</h3>
+                    <p>Full proxychains/SOCKS support with auto-detected <code>LD_PRELOAD</code>. Automatically reduces concurrency to 2 workers, increases timeouts, and skips incompatible modules.</p>
+                    <div class="mini-terminal"><span class="t-g">$</span> proxychains maelstrom 10.0.0.1 -u admin -p pass -A<br><span class="t-b">[*] Proxy mode detected (LD_PRELOAD)</span><br><span class="t-b">[*] Concurrency: 2, timeout: extended</span><br><span class="t-m">[*] Skipping incompatible modules...</span></div>
                 </div>
-                <div class="feature">
-                    <h3>Proxy Mode</h3>
-                    <p>Full proxychains and SOCKS support. Auto-reduces concurrency, increases timeouts, and skips incompatible modules. Detected via <code>LD_PRELOAD</code>.</p>
-                </div>
-                <div class="feature">
-                    <h3>Zero Dependencies</h3>
-                    <p>Pure Python 3.10+ with only stdlib imports. No pip packages, no virtual environments, no build steps. Just Python and NetExec on your PATH.</p>
+                <div class="bento-card animate" style="transition-delay:0.66s">
+                    <h3 style="color:var(--yellow)">Copy-Paste Output</h3>
+                    <p>Clean line-by-line lists of usernames, SPNs, shares, computers, and more. Pipe directly to other tools or save with <code>-o</code> or <code>--copy-paste</code>.</p>
                 </div>
             </div>
         </div>
     </section>
-
-    <!-- ======== CAPABILITIES ======== -->
-    <section>
+    <!-- Capabilities -->
+    <section style="background:var(--mantle)">
         <div class="container">
-            <h2>Capabilities</h2>
-            <p class="section-desc">Every enumeration module at a glance. Green indicates full support across all platforms.</p>
-
-            <div class="capabilities">
-                <div class="capability"><span class="cap-dot full"></span>Users</div>
-                <div class="capability"><span class="cap-dot full"></span>Groups</div>
-                <div class="capability"><span class="cap-dot full"></span>Shares</div>
-                <div class="capability"><span class="cap-dot full"></span>Share Matrix</div>
-                <div class="capability"><span class="cap-dot full"></span>LAPS</div>
-                <div class="capability"><span class="cap-dot full"></span>Kerberoast</div>
-                <div class="capability"><span class="cap-dot full"></span>AS-REP Roast</div>
-                <div class="capability"><span class="cap-dot full"></span>Delegation</div>
-                <div class="capability"><span class="cap-dot full"></span>ADCS</div>
-                <div class="capability"><span class="cap-dot full"></span>gMSA</div>
-                <div class="capability"><span class="cap-dot full"></span>GPP Passwords</div>
-                <div class="capability"><span class="cap-dot full"></span>PSO</div>
-                <div class="capability"><span class="cap-dot full"></span>SCCM</div>
-                <div class="capability"><span class="cap-dot full"></span>Computers</div>
-                <div class="capability"><span class="cap-dot full"></span>Sessions</div>
-                <div class="capability"><span class="cap-dot full"></span>Policies</div>
-                <div class="capability"><span class="cap-dot full"></span>AV/EDR</div>
-                <div class="capability"><span class="cap-dot full"></span>SMB Signing</div>
-                <div class="capability"><span class="cap-dot full"></span>LDAP Signing</div>
-                <div class="capability"><span class="cap-dot full"></span>MSSQL</div>
-                <div class="capability"><span class="cap-dot full"></span>RDP</div>
-                <div class="capability"><span class="cap-dot full"></span>FTP</div>
-                <div class="capability"><span class="cap-dot full"></span>NFS</div>
-                <div class="capability"><span class="cap-dot full"></span>VNC</div>
-                <div class="capability"><span class="cap-dot full"></span>BitLocker</div>
-                <div class="capability"><span class="cap-dot full"></span>Subnets</div>
-                <div class="capability"><span class="cap-dot full"></span>WebDAV</div>
-                <div class="capability"><span class="cap-dot full"></span>Next Steps</div>
-                <div class="capability"><span class="cap-dot full"></span>Copy-Paste</div>
-                <div class="capability"><span class="cap-dot full"></span>Proxy Mode</div>
+            <div class="section-label animate">CAPABILITIES</div>
+            <h2 class="section-title animate" style="transition-delay:.08s">Module coverage</h2>
+            <p class="section-desc animate" style="transition-delay:.16s">35+ modules across 7 protocols. Zero external Python dependencies. Shells out to NetExec for all enumeration.</p>
+            <div class="pills">
+                <div class="pill animate"><span class="dot dot-g"></span>Users</div>
+                <div class="pill animate"><span class="dot dot-g"></span>Groups</div>
+                <div class="pill animate"><span class="dot dot-g"></span>Shares</div>
+                <div class="pill animate"><span class="dot dot-g"></span>LAPS</div>
+                <div class="pill animate"><span class="dot dot-g"></span>Kerberoastable</div>
+                <div class="pill animate"><span class="dot dot-g"></span>AS-REP Roast</div>
+                <div class="pill animate"><span class="dot dot-g"></span>Delegation</div>
+                <div class="pill animate"><span class="dot dot-g"></span>ADCS</div>
+                <div class="pill animate"><span class="dot dot-g"></span>gMSA</div>
+                <div class="pill animate"><span class="dot dot-g"></span>GPP Passwords</div>
+                <div class="pill animate"><span class="dot dot-g"></span>PSO</div>
+                <div class="pill animate"><span class="dot dot-g"></span>SCCM</div>
+                <div class="pill animate"><span class="dot dot-g"></span>Computers</div>
+                <div class="pill animate"><span class="dot dot-g"></span>Sessions</div>
+                <div class="pill animate"><span class="dot dot-g"></span>AV/EDR</div>
+                <div class="pill animate"><span class="dot dot-g"></span>LDAP Signing</div>
+                <div class="pill animate"><span class="dot dot-g"></span>SMB Signing</div>
+                <div class="pill animate"><span class="dot dot-g"></span>MSSQL</div>
+                <div class="pill animate"><span class="dot dot-g"></span>RDP</div>
+                <div class="pill animate"><span class="dot dot-g"></span>FTP</div>
+                <div class="pill animate"><span class="dot dot-g"></span>NFS</div>
+                <div class="pill animate"><span class="dot dot-g"></span>VNC</div>
+                <div class="pill animate"><span class="dot dot-g"></span>Kerberos Auth</div>
+                <div class="pill animate"><span class="dot dot-y"></span>Pass-the-Hash</div>
             </div>
-
-            <div style="margin-top: 20px; font-size: 12px; color: var(--overlay0); font-family: 'JetBrains Mono', monospace;">
-                <span style="color: var(--green);">&#9679;</span> Full &nbsp;&nbsp;
-                <span style="color: var(--yellow);">&#9679;</span> Partial &nbsp;&nbsp;
-                <span style="color: var(--surface2);">&#9679;</span> Not Supported
+            <div style="margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ov0)">
+                <span style="color:var(--green)">●</span> Full &nbsp; <span style="color:var(--yellow)">●</span> Credential Required &nbsp; <span style="color:var(--sf2)">●</span> Not Supported
             </div>
         </div>
     </section>
-
-    <!-- ======== ARCHITECTURE ======== -->
-    <section style="background: var(--mantle);">
+    <!-- Architecture -->
+    <section id="architecture">
         <div class="container">
-            <h2>Architecture</h2>
-            <p class="section-desc">Seven-phase execution pipeline. Pre-scan, validate, cache, enumerate in parallel, then generate reports with next steps.</p>
-
+            <div class="section-label animate">ARCHITECTURE</div>
+            <h2 class="section-title animate" style="transition-delay:.08s">Phased execution pipeline</h2>
+            <p class="section-desc animate" style="transition-delay:.16s">Port prescan, SMB validation, auth probe, cache priming, then 36 independent modules via ThreadPoolExecutor. Proxy mode auto-adapts.</p>
             <div class="arch-grid">
-                <div class="arch-card">
-                    <div class="arch-num">1</div>
-                    <h3>Pre-scan &amp; Validation</h3>
-                    <p>Port 445 TCP scan filters live hosts from CIDR ranges. SMB reachability and hostname resolution verify each target before enumeration begins.</p>
+                <div class="arch-card animate" style="transition-delay:0.1s"><div class="arch-num">1</div><h3>Port Prescan</h3><p>100-thread TCP scan discovers live SMB hosts across CIDR ranges. Filters targets before enumeration begins. Supports IP ranges and target files.</p></div>
+                <div class="arch-card animate" style="transition-delay:0.2s"><div class="arch-num">2</div><h3>Auth Validation</h3><p>Probes null session, guest session, and provided credentials. Detects admin access. Multi-credential mode compares access levels across users.</p></div>
+                <div class="arch-card animate" style="transition-delay:0.3s"><div class="arch-num">3</div><h3>Module Dispatch</h3><p>36 independent modules via ThreadPoolExecutor with 15 workers. Cache priming with 7 parallel LDAP queries. Proxy mode reduces to 2 workers.</p></div>
+                <div class="arch-card animate" style="transition-delay:0.4s"><div class="arch-num">4</div><h3>Reporting Engine</h3><p>Catppuccin Mocha colored output. Actionable next steps with auto-filled credentials. Share access matrix in multi-credential mode. JSON and file export.</p></div>
+            </div>
+        </div>
+    </section>
+    <!-- Getting Started -->
+    <section style="background:var(--mantle)">
+        <div class="container">
+            <div class="section-label animate">GETTING STARTED</div>
+            <h2 class="section-title animate" style="transition-delay:.08s">Install and enumerate</h2>
+            <p class="section-desc animate" style="transition-delay:.16s">Python package with zero external dependencies. Requires NetExec on PATH. Install via pipx or pip.</p>
+            <div class="two-col">
+                <div class="terminal animate" style="transition-delay:.1s">
+                    <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-label">install.sh</span></div>
+                    <div class="terminal-body"><pre><span class="t-m"># Install with pipx (recommended)</span>
+<span class="t-g">$</span> pipx install git+https://github.com/Real-Fruit-Snacks/Maelstrom.git
+
+<span class="t-m"># Or standard pip</span>
+<span class="t-g">$</span> pip install git+https://github.com/Real-Fruit-Snacks/Maelstrom.git
+
+<span class="t-m"># Run tests</span>
+<span class="t-g">$</span> pytest</pre></div>
                 </div>
-                <div class="arch-card">
-                    <div class="arch-num">2</div>
-                    <h3>Auth &amp; Cache Prime</h3>
-                    <p>Anonymous probing tests null/guest/LDAP sessions. Credential validation then cache priming with 7 parallel queries: SMB, RID brute, LDAP, pass policy.</p>
-                </div>
-                <div class="arch-card">
-                    <div class="arch-num">3</div>
-                    <h3>Parallel Enumeration</h3>
-                    <p>Sequential domain intel pass followed by 36 independent modules via <code>ThreadPoolExecutor</code> with 15 workers. Proxy mode reduces to 2 workers.</p>
-                </div>
-                <div class="arch-card">
-                    <div class="arch-num">4</div>
-                    <h3>Reporting</h3>
-                    <p>Executive summary, actionable next steps with auto-filled credentials, share access matrix for multi-cred mode, and copy-paste lists for tool chaining.</p>
+                <div class="terminal animate" style="transition-delay:.25s">
+                    <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-label">usage.sh</span></div>
+                    <div class="terminal-body"><pre><span class="t-m"># Anonymous enumeration</span>
+<span class="t-g">$</span> maelstrom 10.0.0.1
+
+<span class="t-m"># Full enumeration with creds</span>
+<span class="t-g">$</span> maelstrom 10.0.0.1 -u admin -p pass -d CORP -A
+
+<span class="t-m"># Pass-the-hash</span>
+<span class="t-g">$</span> maelstrom 10.0.0.1 -u admin -H aad3b:31d6c
+
+<span class="t-m"># CIDR scan</span>
+<span class="t-g">$</span> maelstrom 10.0.0.0/24 -u admin -p pass</pre></div>
                 </div>
             </div>
         </div>
     </section>
-
-    <!-- ======== GETTING STARTED ======== -->
+    <!-- Detection -->
     <section>
         <div class="container">
-            <h2>Getting Started</h2>
-            <p class="section-desc">Install with pipx, point at a target, and let Maelstrom handle the rest. No configuration needed.</p>
-
-            <div class="two-col">
-                <div class="terminal">
-                    <div class="terminal-bar">
-                        <span class="terminal-dot"></span>
-                        <span class="terminal-dot"></span>
-                        <span class="terminal-dot"></span>
-                        <span class="terminal-label">install.sh</span>
-                    </div>
-                    <div class="terminal-body">
-                        <pre><span class="c"># Install globally with pipx</span>
-<span class="p">$</span> pipx install git+https://github.com/Real-Fruit-Snacks/Maelstrom.git
-
-<span class="c"># Full enumeration with credentials</span>
-<span class="p">$</span> maelstrom 10.0.0.1 <span class="f">-u</span> admin <span class="f">-p</span> 'Password123' <span class="f">-d</span> CORP
-
-<span class="c"># Anonymous enumeration</span>
-<span class="p">$</span> maelstrom 10.0.0.1
-
-<span class="c"># Pass-the-hash</span>
-<span class="p">$</span> maelstrom 10.0.0.1 <span class="f">-u</span> admin <span class="f">-H</span> aad3b435:31d6cfe0</pre>
-                    </div>
-                </div>
-
-                <div class="terminal">
-                    <div class="terminal-bar">
-                        <span class="terminal-dot"></span>
-                        <span class="terminal-dot"></span>
-                        <span class="terminal-dot"></span>
-                        <span class="terminal-label">advanced.sh</span>
-                    </div>
-                    <div class="terminal-body">
-                        <pre><span class="c"># Multi-target CIDR scan</span>
-<span class="p">$</span> maelstrom 10.0.0.0/24 <span class="f">-u</span> admin <span class="f">-p</span> pass
-
-<span class="c"># Multi-credential comparison</span>
-<span class="p">$</span> maelstrom 10.0.0.1 <span class="f">-C</span> creds.txt <span class="f">-d</span> CORP
-
-<span class="c"># Specific modules only</span>
-<span class="p">$</span> maelstrom 10.0.0.1 <span class="f">-u</span> admin <span class="f">-p</span> pass <span class="f">--shares --laps --adcs</span>
-
-<span class="c"># Discover live SMB hosts</span>
-<span class="p">$</span> maelstrom 10.0.0.0/24 <span class="f">--discover-only</span></pre>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ======== DETECTION AWARENESS ======== -->
-    <section style="background: var(--mantle);">
-        <div class="container">
-            <h2>Detection Awareness</h2>
-            <p class="section-desc">Maelstrom uses standard enumeration protocols. Understand what generates alerts and what blends in.</p>
-
-            <div class="detection-grid">
-                <div class="detection-card safe">
-                    <h3>Low Visibility</h3>
+            <div class="section-label animate">DETECTION AWARENESS</div>
+            <h2 class="section-title animate" style="transition-delay:.08s">Know the boundaries</h2>
+            <div class="two-col" style="margin-top:32px">
+                <div class="detect-card detect-hidden animate" style="transition-delay:.1s">
+                    <h3>Hidden From</h3>
                     <ul>
-                        <li>LDAP queries (standard directory lookups)</li>
-                        <li>SMB share enumeration (normal file server access)</li>
-                        <li>DNS enumeration recommendations (passive only)</li>
-                        <li>Anonymous/guest session probing</li>
-                        <li>RPC enumeration (standard Windows calls)</li>
+                        <li>Target systems — read-only enumeration, no commands executed</li>
+                        <li>Kerberos TGS — identifies SPNs via LDAP only, no ticket requests</li>
+                        <li>Relay attacks — identifies opportunities only, no exploitation</li>
+                        <li>Lateral movement — no implants, persistence, or beaconing</li>
+                        <li>File residue — output files created with 0o600 permissions</li>
                     </ul>
                 </div>
-                <div class="detection-card visible">
-                    <h3>May Generate Alerts</h3>
+                <div class="detect-card detect-visible animate" style="transition-delay:.2s">
+                    <h3>Visible To</h3>
                     <ul>
-                        <li>Port 445 pre-scan across CIDR ranges</li>
-                        <li>RID brute-force enumeration</li>
-                        <li>Multiple protocol connections in rapid succession</li>
-                        <li>Multi-credential testing (potential spray detection)</li>
-                        <li>Large-scale share spider operations</li>
+                        <li>Network monitoring — SMB/LDAP/RPC connection metadata</li>
+                        <li>Windows Event Log — authentication and enumeration events</li>
+                        <li>EDR / XDR — NetExec behavioral signatures</li>
+                        <li>IDS/IPS — high-volume enumeration traffic patterns</li>
+                        <li>SIEM — correlated auth events across protocols</li>
                     </ul>
                 </div>
             </div>
         </div>
     </section>
-
-    <!-- ======== FOOTER ======== -->
+    <!-- Footer -->
     <footer>
         <div class="container">
+            <div class="footer-line"></div>
             <div class="footer-grid">
-                <div>
-                    <h4>Documentation</h4>
-                    <ul>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#quick-start">Quick Start</a></li>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#modules">Modules</a></li>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#configuration">Configuration</a></li>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#architecture">Architecture</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4>Resources</h4>
-                    <ul>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/issues">Report Issue</a></li>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/blob/main/CONTRIBUTING.md">Contributing</a></li>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/blob/main/CHANGELOG.md">Changelog</a></li>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/blob/main/SECURITY.md">Security</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4>Toolkit</h4>
-                    <ul>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Flux">Flux</a></li>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Deluge">Deluge</a></li>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Riptide">Riptide</a></li>
-                        <li><a href="https://github.com/Real-Fruit-Snacks/Aquifer">Aquifer</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4>License</h4>
-                    <p>MIT License. Free for authorized security testing, research, and educational purposes. Use responsibly.</p>
-                </div>
+                <div><h4>Documentation</h4><ul><li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#quick-start">Quick Start</a></li><li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#features">Features</a></li><li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#architecture">Architecture</a></li><li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom#security">Security</a></li></ul></div>
+                <div><h4>Resources</h4><ul><li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/releases/latest">Latest Release</a></li><li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/issues">Report Issue</a></li><li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/blob/main/CONTRIBUTING.md">Contributing</a></li><li><a href="https://github.com/Real-Fruit-Snacks/Maelstrom/blob/main/CHANGELOG.md">Changelog</a></li></ul></div>
+                <div><h4>Toolkit</h4><ul><li><a href="https://github.com/Real-Fruit-Snacks/Flux">Flux</a></li><li><a href="https://github.com/Real-Fruit-Snacks/Riptide">Riptide</a></li><li><a href="https://github.com/Real-Fruit-Snacks/Deluge">Deluge</a></li><li><a href="https://github.com/Real-Fruit-Snacks">View All →</a></li></ul></div>
+                <div><h4>License</h4><p>MIT License<br>Copyright &copy; 2026<br>Real-Fruit-Snacks</p></div>
             </div>
-
-            <div class="footer-bottom">
-                Part of the Real-Fruit-Snacks water-themed security toolkit
-            </div>
+            <div class="footer-bottom">Part of the Real-Fruit-Snacks security toolkit</div>
         </div>
     </footer>
 
+    <script>
+    const obs=new IntersectionObserver(e=>{e.forEach(el=>{if(el.isIntersecting){el.target.classList.add('visible');obs.unobserve(el.target)}})},{threshold:.1,rootMargin:'0px 0px -50px 0px'});
+    document.querySelectorAll('.animate,.animate-scale').forEach(el=>obs.observe(el));
+    function countUp(el){const t=parseInt(el.dataset.target),s=el.dataset.suffix||'',p=el.dataset.prefix||'',d=1500,st=performance.now();function u(n){const pr=Math.min((n-st)/d,1),e=1-Math.pow(1-pr,3);el.textContent=p+Math.floor(t*e)+s;if(pr<1)requestAnimationFrame(u)}requestAnimationFrame(u)}
+    const sobs=new IntersectionObserver(e=>{e.forEach(el=>{if(el.isIntersecting){countUp(el.target);sobs.unobserve(el.target)}})},{threshold:.5});
+    document.querySelectorAll('.stat-num').forEach(el=>sobs.observe(el));
+    window.addEventListener('scroll',()=>{document.querySelector('.nav').style.borderBottomColor=window.scrollY>20?'rgba(49,50,68,0.8)':'rgba(49,50,68,0.3)'});
+    </script>
 </body>
 </html>
