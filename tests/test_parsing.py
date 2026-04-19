@@ -1041,6 +1041,48 @@ class TestEnumCacheRunNxcCached(unittest.TestCase):
             self.assertEqual(cache.smb_basic, (0, "output", ""))
 
 
+class TestRoutableIPFilter(unittest.TestCase):
+    """Test _is_routable_ip — the multi-homed false-positive gate."""
+
+    def setUp(self):
+        from maelstrom.enums.interfaces import _is_routable_ip
+
+        self.is_routable = _is_routable_ip
+
+    def test_rejects_ipv6_link_local(self):
+        """fe80::/10 is auto-assigned per interface — not multi-homing."""
+        self.assertFalse(self.is_routable("fe80::99db:b3d5:3974:681f"))
+        self.assertFalse(self.is_routable("fe80::1"))
+
+    def test_rejects_ipv6_link_local_with_zone(self):
+        """Link-local addresses with a zone suffix should still be rejected."""
+        self.assertFalse(self.is_routable("fe80::1%eth0"))
+
+    def test_rejects_ipv4_link_local(self):
+        """169.254.0.0/16 (APIPA) is also per-interface, not multi-homing."""
+        self.assertFalse(self.is_routable("169.254.1.2"))
+
+    def test_rejects_loopback(self):
+        self.assertFalse(self.is_routable("127.0.0.1"))
+        self.assertFalse(self.is_routable("::1"))
+
+    def test_rejects_unspecified(self):
+        self.assertFalse(self.is_routable("0.0.0.0"))
+        self.assertFalse(self.is_routable("::"))
+
+    def test_rejects_invalid(self):
+        self.assertFalse(self.is_routable("not-an-ip"))
+        self.assertFalse(self.is_routable(""))
+
+    def test_accepts_routable_ipv4(self):
+        self.assertTrue(self.is_routable("10.0.19.80"))
+        self.assertTrue(self.is_routable("192.168.1.1"))
+        self.assertTrue(self.is_routable("8.8.8.8"))
+
+    def test_accepts_routable_ipv6(self):
+        self.assertTrue(self.is_routable("2001:db8::1"))
+
+
 class TestShareParsing(unittest.TestCase):
     """Test SMB share output parsing."""
 

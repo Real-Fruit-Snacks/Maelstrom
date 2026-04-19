@@ -9,6 +9,7 @@ No command execution on the target.
 Pentest value: Identifies multi-homed hosts for potential pivot points.
 """
 
+import ipaddress
 import re
 
 from ..core.colors import Colors, c
@@ -22,6 +23,33 @@ RE_IP_ADDR = re.compile(r"IP(?:v[46])?(?:\s+Address)?:\s*(\S+)", re.IGNORECASE)
 RE_LINK_SPEED = re.compile(r"Link\s*Speed:\s*(\S+)", re.IGNORECASE)
 RE_DHCP = re.compile(r"DHCP:\s*(\S+)", re.IGNORECASE)
 RE_GATEWAY = re.compile(r"Gateway:\s*(\S+)", re.IGNORECASE)
+
+
+def _is_routable_ip(ip_str: str) -> bool:
+    """True if the IP is routable off-link (i.e. pivot-relevant).
+
+    Rejects:
+      - Loopback (127.0.0.0/8, ::1)
+      - Link-local (169.254.0.0/16, fe80::/10) — auto-assigned per interface,
+        not multi-homing
+      - Unspecified (0.0.0.0, ::)
+      - Multicast
+
+    A host with 10.0.19.80 + fe80::... is a single dual-stack interface,
+    not multi-homed. This filter prevents false "MULTI-HOMED" banners.
+    """
+    try:
+        # Strip any IPv6 zone/scope suffix (e.g. "fe80::1%eth0")
+        clean = ip_str.split("%", 1)[0]
+        addr = ipaddress.ip_address(clean)
+    except ValueError:
+        return False
+    return not (
+        addr.is_loopback
+        or addr.is_link_local
+        or addr.is_unspecified
+        or addr.is_multicast
+    )
 
 
 def enum_interfaces(args, cache):
@@ -114,25 +142,34 @@ def enum_interfaces(args, cache):
     access_denied = "STATUS_ACCESS_DENIED" in combined.upper()
     requires_admin = "requires admin" in combined.lower()
 
-    # Store in cache
-    cache.network_interfaces = interfaces
-    cache.is_multi_homed = len(interfaces) > 1
-
     if interfaces:
-        # Count unique IPs
+        # Collect all IPs, then partition into routable vs link-local/loopback.
+        # Only routable IPs count toward multi-homed detection — link-local
+        # IPv6 (fe80::/10) is auto-assigned per interface and is NOT a sign
+        # of multi-homing.
         all_ips = []
         for iface in interfaces:
             all_ips.extend(iface.get("ip", []))
-        unique_ips = list(set(all_ips))
+        unique_ips = list(dict.fromkeys(all_ips))  # preserve order, dedupe
+        routable_ips = [ip for ip in unique_ips if _is_routable_ip(ip)]
+        non_routable_ips = [ip for ip in unique_ips if not _is_routable_ip(ip)]
+
+        # Multi-homed = more than one routable IP (more than one real network).
+        is_multi_homed = len(routable_ips) > 1
+
+        # Store in cache
+        cache.network_interfaces = interfaces
+        cache.is_multi_homed = is_multi_homed
 
         status(
-            f"Found {len(interfaces)} interface(s) with {len(unique_ips)} IP(s)",
+            f"Found {len(interfaces)} interface(s) with {len(unique_ips)} IP(s) "
+            f"({len(routable_ips)} routable)",
             "success",
         )
         output("")
 
-        # Check for multi-homed (potential pivot)
-        if len(unique_ips) > 1:
+        # Check for multi-homed (potential pivot) — routable IPs only
+        if is_multi_homed:
             output(
                 c(
                     "[!] MULTI-HOMED HOST DETECTED - Potential pivot point!",
@@ -153,8 +190,12 @@ def enum_interfaces(args, cache):
 
             output(f"  {c('Interface:', Colors.CYAN)} {name}")
             for ip in ips:
-                # Highlight non-target IPs (potential other networks)
-                if ip != target:
+                if not _is_routable_ip(ip):
+                    # Link-local / loopback: dim and tag so it's not confused
+                    # with a pivot-relevant address.
+                    output(f"    {c('IP:', Colors.BLUE)} {ip} {c('(link-local)', Colors.BLUE)}")
+                elif ip != target:
+                    # Routable IP on a different network — highlight as pivot
                     output(f"    {c('IP:', Colors.GREEN)} {c(ip, Colors.GREEN + Colors.BOLD)}")
                 else:
                     output(f"    {c('IP:', Colors.BLUE)} {ip}")
@@ -166,17 +207,26 @@ def enum_interfaces(args, cache):
                 output(f"    {c('DHCP:', Colors.BLUE)} {dhcp}")
             output("")
 
-        # Store IPs for copy-paste
-        cache.copy_paste_data["interface_ips"] = set(unique_ips)
+        # Store IPs for copy-paste (routable only — link-local isn't pivot-usable)
+        cache.copy_paste_data["interface_ips"] = set(routable_ips)
 
-        # Add pivot recommendation if multi-homed
-        if len(unique_ips) > 1:
-            other_ips = [ip for ip in unique_ips if ip != target]
-            cache.add_next_step(
-                finding=f"Multi-homed host with {len(other_ips)} additional network(s)",
-                command=f"# Additional networks: {', '.join(other_ips)}",
-                description="Investigate other network segments for lateral movement",
-                priority="medium",
+        # Add pivot recommendation only if genuinely multi-homed via routable IPs
+        if is_multi_homed:
+            other_ips = [ip for ip in routable_ips if ip != target]
+            if other_ips:
+                cache.add_next_step(
+                    finding=f"Multi-homed host with {len(other_ips)} additional network(s)",
+                    command=f"# Additional networks: {', '.join(other_ips)}",
+                    description="Investigate other network segments for lateral movement",
+                    priority="medium",
+                )
+
+        # Note (not a pivot signal) if we saw link-local addresses
+        if non_routable_ips and not is_multi_homed:
+            status(
+                "Only one routable IP found — link-local/loopback addresses do not "
+                "indicate multi-homing",
+                "info",
             )
 
     elif access_denied or requires_admin:
@@ -188,8 +238,15 @@ def enum_interfaces(args, cache):
             status("No additional network interfaces found", "info")
 
     if args.json_output:
+        # Re-derive routable set for JSON (empty-safe when no interfaces parsed)
+        all_ips_json = []
+        for iface in interfaces:
+            all_ips_json.extend(iface.get("ip", []))
+        unique_ips_json = list(dict.fromkeys(all_ips_json))
+        routable_json = [ip for ip in unique_ips_json if _is_routable_ip(ip)]
         JSON_DATA["interfaces"] = {
             "interfaces": interfaces,
-            "is_multi_homed": len(interfaces) > 1,
+            "is_multi_homed": len(routable_json) > 1,
             "count": len(interfaces),
+            "routable_ips": routable_json,
         }

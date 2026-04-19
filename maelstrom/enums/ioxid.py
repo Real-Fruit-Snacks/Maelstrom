@@ -236,6 +236,13 @@ def enum_ioxid(args, cache):
     # Query iOXIDResolver
     addresses = query_ioxid(target, timeout=args.timeout)
 
+    # Filter out non-routable addresses (loopback, link-local, etc.) so they
+    # don't trigger a false "MULTI-HOMED" banner. iOXIDResolver occasionally
+    # returns 127.0.0.1 or 169.254.x.x alongside the real address.
+    from .interfaces import _is_routable_ip  # local import to avoid cycles
+
+    addresses = [ip for ip in addresses if _is_routable_ip(ip)]
+
     # Store in cache
     cache.ioxid_addresses = addresses
     cache.ioxid_multi_homed = len(addresses) > 1
