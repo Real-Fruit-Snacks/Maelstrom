@@ -21,6 +21,7 @@ from maelstrom.parsing.nxc_output import (  # noqa: E402
     is_nxc_noise_line,
     parse_nxc_output,
 )
+from maelstrom.parsing.shares import parse_shares_from_output  # noqa: E402
 
 
 class TestNxcOutputParsing(unittest.TestCase):
@@ -1038,6 +1039,52 @@ class TestEnumCacheRunNxcCached(unittest.TestCase):
             cache.run_nxc_cached(["smb", "10.0.0.1"], cache_attr="smb_basic")
 
             self.assertEqual(cache.smb_basic, (0, "output", ""))
+
+
+class TestShareParsing(unittest.TestCase):
+    """Test SMB share output parsing."""
+
+    def test_parse_shares_literal_share_name(self):
+        """Regression: a share literally named 'Share' must NOT be filtered out.
+
+        The column-header row is identified by the combination of 'Share' +
+        'Permissions' + 'Remark' on the same line. A data row that only
+        contains the name 'Share' is a real share and must be kept.
+        """
+        stdout = (
+            "SMB         10.0.19.80      445    DC01             [*] Windows Server 2022\n"
+            "SMB         10.0.19.80      445    DC01             [+] hack.smarter\\user:pass\n"
+            "SMB         10.0.19.80      445    DC01             [*] Enumerated shares\n"
+            "SMB         10.0.19.80      445    DC01             Share           Permissions     Remark\n"
+            "SMB         10.0.19.80      445    DC01             -----           -----------     ------\n"
+            "SMB         10.0.19.80      445    DC01             ADMIN$                          Remote Admin\n"
+            "SMB         10.0.19.80      445    DC01             C$                              Default share\n"
+            "SMB         10.0.19.80      445    DC01             IPC$            READ            Remote IPC\n"
+            "SMB         10.0.19.80      445    DC01             NETLOGON        READ            Logon server share\n"
+            "SMB         10.0.19.80      445    DC01             Share           READ\n"
+            "SMB         10.0.19.80      445    DC01             SYSVOL          READ            Logon server share\n"
+        )
+        shares = parse_shares_from_output(stdout)
+        share_names = [name for name, _, _ in shares]
+
+        self.assertIn("Share", share_names, "literal share name 'Share' was dropped")
+        self.assertIn("ADMIN$", share_names)
+        self.assertIn("C$", share_names)
+        self.assertIn("IPC$", share_names)
+        self.assertIn("NETLOGON", share_names)
+        self.assertIn("SYSVOL", share_names)
+        self.assertEqual(len(shares), 6, f"expected 6 shares, got {share_names}")
+
+    def test_parse_shares_header_row_still_filtered(self):
+        """The column header row (Share + Permissions + Remark together) must be skipped."""
+        stdout = (
+            "SMB         10.0.0.1        445    SRV              Share           Permissions     Remark\n"
+            "SMB         10.0.0.1        445    SRV              -----           -----------     ------\n"
+            "SMB         10.0.0.1        445    SRV              Data            READ\n"
+        )
+        shares = parse_shares_from_output(stdout)
+        share_names = [name for name, _, _ in shares]
+        self.assertEqual(share_names, ["Data"])
 
 
 if __name__ == "__main__":

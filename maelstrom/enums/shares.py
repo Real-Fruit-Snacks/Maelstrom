@@ -296,7 +296,10 @@ def enum_shares(args, cache):
                                 remark = " ".join(parts[1:])
 
             if share_name and share_name not in [s[0] for s in shares]:
-                if share_name not in ("Share", "-----", "[*]", "[+]"):
+                # Note: the "Share" + "Permissions" + "Remark" header row is already
+                # filtered above via the in_share_table toggle. Do NOT blacklist the
+                # literal name "Share" here — it is a common legitimate share name.
+                if share_name not in ("-----", "[*]", "[+]"):
                     # Enrich with verbose data
                     share_type = verbose_info["share_types"].get(share_name, "")
                     max_users = verbose_info["max_users"].get(share_name)
